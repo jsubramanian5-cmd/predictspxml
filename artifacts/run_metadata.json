@@ -438,7 +438,7 @@
         "https://cdn.cboe.com/resources/schedule_update/2025/Cboe-to-Observe-National-Day-of-Mourning-on-Thursday-January-9-2025.pdf",
         "https://www.cboe.com/aboutcboe/xcal2018.pdf"
       ],
-      "retrieved_at": "2026-11-08T14:53:12.677468+00:00",
+      "retrieved_at": "2026-11-08T16:16:37.597407+00:00",
       "published_at": null,
       "sha256": "10d0e1fde0c768a9565788aa89b90060df8596f7b1ebd5ac37fe29dbd5ab258b",
       "snapshot": "calendar_import-10d0e1fde0c768a9565788aa89b90060df8596f7b1ebd5ac37fe29dbd5ab258b.raw"
@@ -470,7 +470,7 @@
         "https://www.cboe.com/index_settlement_values/get_sv_data/W/2025/",
         "https://www.cboe.com/index_settlement_values/get_sv_data/W/2026/"
       ],
-      "retrieved_at": "2026-11-08T14:53:12.694077+00:00",
+      "retrieved_at": "2026-11-08T16:16:37.618532+00:00",
       "published_at": null,
       "sha256": "f2555679c31f95f773cfecb403517ae2f34a26211c27297c96ef96b877245a89",
       "snapshot": "contracts_import-f2555679c31f95f773cfecb403517ae2f34a26211c27297c96ef96b877245a89.raw"
