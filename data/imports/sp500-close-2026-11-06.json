@@ -1,0 +1,16 @@
+{
+  "index": "S&P 500",
+  "date": "2026-11-06",
+  "close": 7376.86,
+  "units": "index points",
+  "source": "https://www.cboe.com/index_settlement_values/get_sv_data/W/2026/",
+  "source_page": "https://www.cboe.com/index_settlement_values/weeklys_settlement_values/",
+  "source_record": {
+    "description": "S&P 500 CLOSE",
+    "trading_symbol": "SPXW",
+    "expiration_date": "2026-11-06",
+    "settlement_symbol": "SPX",
+    "settlement_value": 7376.86,
+    "display_order": 34
+  }
+}

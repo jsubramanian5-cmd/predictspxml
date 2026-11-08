@@ -1,0 +1,11 @@
+{
+  "dataset": "spx",
+  "source_url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=SP500",
+  "sha256": "e3d7566c49052717d5f4afd0dd50c0c7056f6e5859c5dc83d2f71437c17c2c77",
+  "snapshot": "spx-e3d7566c49052717d5f4afd0dd50c0c7056f6e5859c5dc83d2f71437c17c2c77.raw",
+  "import_path": "C:\\Dev\\indexoptions\\data\\imports\\SP500.csv",
+  "source_method": "user_supplied_download",
+  "provenance": "User-supplied file attributed to official download URL",
+  "retrieved_at": "2026-11-07T16:06:36.624434+00:00",
+  "published_at": null
+}

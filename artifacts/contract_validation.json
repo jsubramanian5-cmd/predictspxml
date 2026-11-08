@@ -1,0 +1,48 @@
+{
+  "as_of": "2026-11-06",
+  "rows": 695,
+  "contracts_sha256": "f2555679c31f95f773cfecb403517ae2f34a26211c27297c96ef96b877245a89",
+  "summary": [
+    {
+      "horizon": "monthly",
+      "classification": "standard_monthly_AM",
+      "eligible": true,
+      "rows": 130
+    },
+    {
+      "horizon": "weekly",
+      "classification": "end_of_month_collision",
+      "eligible": false,
+      "rows": 58
+    },
+    {
+      "horizon": "weekly",
+      "classification": "end_of_week",
+      "eligible": true,
+      "rows": 377
+    },
+    {
+      "horizon": "weekly",
+      "classification": "standard_monthly_collision",
+      "eligible": false,
+      "rows": 130
+    }
+  ],
+  "boundary_weeks_not_asserted": [
+    {
+      "nominal_expiration": "2016-01-01",
+      "reason": "Prior-week reference outside verified calendar"
+    },
+    {
+      "nominal_expiration": "2016-01-08",
+      "reason": "Prior-week reference outside verified calendar"
+    }
+  ],
+  "policy": "docs/contract_review.json",
+  "calendar_review": "docs/calendar_review.json",
+  "limitations": [
+    "Settlement-date eligibility for the requested EOW PM / standard monthly AM forecast targets. Not a strike-level chain, liquidity or historical listing-time archive.",
+    "No future or unknown listing dates inferred.",
+    "Historical listing timestamps and strike-level availability are not verified."
+  ]
+}

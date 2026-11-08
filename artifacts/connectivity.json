@@ -1,0 +1,30 @@
+{
+  "checked_at": "2026-11-07T15:10:28.406369+00:00",
+  "session_constraint": "Restricted network; sandbox escalation unavailable",
+  "checks": [
+    {
+      "service": "pypi",
+      "url": "https://pypi.org/simple/xgboost/",
+      "connected": false,
+      "error": "HTTPSConnectionPool(host='pypi.org', port=443): Max retries exceeded with url: /simple/xgboost/ (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x0000029588C90D70>: Failed to establish a new connection: [WinError 10051] A socket operation was attempted to an unreachable network'))"
+    },
+    {
+      "service": "fred",
+      "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=SP500",
+      "connected": false,
+      "error": "HTTPSConnectionPool(host='fred.stlouisfed.org', port=443): Max retries exceeded with url: /graph/fredgraph.csv?id=SP500 (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x0000029588C95BD0>: Failed to establish a new connection: [WinError 10013] An attempt was made to access a socket in a way forbidden by its access permissions'))"
+    },
+    {
+      "service": "cboe_downloads",
+      "url": "https://cdn-api.cboe.com/api/global/us_indices/daily_prices/VIX_History.csv",
+      "connected": false,
+      "error": "HTTPSConnectionPool(host='cdn-api.cboe.com', port=443): Max retries exceeded with url: /api/global/us_indices/daily_prices/VIX_History.csv (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x0000029588C96490>: Failed to establish a new connection: [WinError 10051] A socket operation was attempted to an unreachable network'))"
+    },
+    {
+      "service": "cboe_settlements",
+      "url": "https://www.cboe.com/index_settlement_values/",
+      "connected": false,
+      "error": "HTTPSConnectionPool(host='www.cboe.com', port=443): Max retries exceeded with url: /index_settlement_values/ (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x0000029588C96710>: Failed to establish a new connection: [WinError 10051] A socket operation was attempted to an unreachable network'))"
+    }
+  ]
+}

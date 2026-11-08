@@ -1,0 +1,2 @@
+expiration,settlement,source_value,horizon,settlement_type,published_at,source_url,retrieved_at,sha256,reason
+2019-08-12,,2883.75 *,weekly,SPXW_PM,,https://www.cboe.com/index_settlement_values/get_sv_data/W/2019/,2026-11-07T17:27:02.276336+00:00,7321c82ea8fa50526fbf58819325521ad3117b22cfb9eb753713d1747ed196b1,Nonnumeric or annotated source value requires review

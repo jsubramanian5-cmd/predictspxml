@@ -1,0 +1,11 @@
+{
+  "dataset": "weekly",
+  "source_url": "https://www.cboe.com/index_settlement_values/weeklys_settlement_values/",
+  "sha256": "4922df4b7f2e1270273bd765a2b24dd19337eb3110e4fbac86016f618a684c08",
+  "snapshot": "weekly-4922df4b7f2e1270273bd765a2b24dd19337eb3110e4fbac86016f618a684c08.raw",
+  "import_path": "data\\imports\\cboe-weeklys-settlement-values-all-years.zip",
+  "source_method": "user_supplied_download",
+  "provenance": "User-supplied file attributed to official download URL",
+  "retrieved_at": "2026-11-07T17:27:02.276336+00:00",
+  "published_at": null
+}

@@ -1,0 +1,11 @@
+{
+  "dataset": "monthly",
+  "source_url": "https://www.cboe.com/index_settlement_values/",
+  "sha256": "d1efc8461215e8882615167e60b4fdfa3f0a797dc610b6581e49eb11f82dd9a7",
+  "snapshot": "monthly-d1efc8461215e8882615167e60b4fdfa3f0a797dc610b6581e49eb11f82dd9a7.raw",
+  "import_path": "data\\imports\\cboe-monthly-set-am-history.zip",
+  "source_method": "user_supplied_download",
+  "provenance": "User-supplied file attributed to official download URL",
+  "retrieved_at": "2026-11-07T19:37:43.563641+00:00",
+  "published_at": null
+}

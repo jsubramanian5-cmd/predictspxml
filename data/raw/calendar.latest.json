@@ -1,0 +1,10 @@
+{
+  "dataset": "calendar",
+  "source_url": "https://cdn.cboe.com/resources/options/Cboe2026OPTIONSCalendar.pdf",
+  "resolved_url": "https://cdn.cboe.com/resources/options/Cboe2026OPTIONSCalendar.pdf",
+  "retrieved_at": "2026-11-07T21:35:48.574464+00:00",
+  "published_at": null,
+  "http_last_modified": "Fri, 09 Jan 2026 21:22:07 GMT",
+  "sha256": "421a0699055b99ebc2dea6da53666939bc0918882d1f615da5664582a52b3c9e",
+  "snapshot": "calendar-421a0699055b99ebc2dea6da53666939bc0918882d1f615da5664582a52b3c9e.raw"
+}

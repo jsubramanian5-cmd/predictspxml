@@ -1,0 +1,5 @@
+horizon,classification,eligible,rows
+monthly,standard_monthly_AM,True,130
+weekly,end_of_month_collision,False,58
+weekly,end_of_week,True,377
+weekly,standard_monthly_collision,False,130

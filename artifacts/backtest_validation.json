@@ -1,0 +1,54 @@
+{
+  "prediction_rows": 1253,
+  "metrics_rows": 69,
+  "counts": {
+    "weekly_development": {
+      "observations": 71,
+      "model_configurations": 13,
+      "predictions": 923
+    },
+    "weekly_final_test": {
+      "observations": 69,
+      "model_configurations": 2,
+      "predictions": 138
+    },
+    "monthly_development": {
+      "observations": 24,
+      "model_configurations": 6,
+      "predictions": 144
+    },
+    "monthly_final_test": {
+      "observations": 24,
+      "model_configurations": 2,
+      "predictions": 48
+    }
+  },
+  "selections": {
+    "weekly": {
+      "selected": {
+        "family": "scaled"
+      },
+      "promoted_ml": false,
+      "benchmark_score": 662.4750901947374,
+      "ml_score": 672.9873038019817,
+      "benchmark_coverage": 0.782608695652174,
+      "ml_coverage": 0.782608695652174
+    },
+    "monthly": {
+      "selected": {
+        "family": "scaled"
+      },
+      "promoted_ml": false,
+      "benchmark_score": 1331.5715217365944,
+      "ml_score": 1403.3698086590437,
+      "benchmark_coverage": 0.7916666666666666,
+      "ml_coverage": 0.875
+    }
+  },
+  "checks": "Arithmetic, units, quantile ordering, per-model cohorts, outcome joins, training cutoffs, development winners, final-only finalists and promotion decisions passed.",
+  "limitations": [
+    "Historical publication timing assumptions remain; current history is not a vintage archive.",
+    "This does not independently refit every estimator or establish live trading performance.",
+    "Final-test-based promotion is not an additional untouched performance test."
+  ]
+}

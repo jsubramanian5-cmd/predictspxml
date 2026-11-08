@@ -1,0 +1,17 @@
+* text=auto
+*.py text eol=lf
+*.md text eol=lf
+*.toml text eol=lf
+*.lock text eol=lf
+*.ipynb text eol=lf
+
+# These inputs/snapshots are content-hashed. Never normalize their bytes.
+data/imports/** -text
+data/raw/** -text
+data/normalized/** -text
+*.pdf binary
+*.png binary
+*.zip binary
+*.parquet binary
+*.pkl binary
+*.raw binary

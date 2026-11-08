@@ -1,0 +1,16 @@
+{
+  "notebooks\\spx_forecast.ipynb": {
+    "cells": 21,
+    "code_cells": 11,
+    "executed_code_cells": 0,
+    "embedded_png_outputs": 0,
+    "error_outputs": 0
+  },
+  "notebooks\\spx_forecast.executed.ipynb": {
+    "cells": 21,
+    "code_cells": 11,
+    "executed_code_cells": 11,
+    "embedded_png_outputs": 7,
+    "error_outputs": 0
+  }
+}

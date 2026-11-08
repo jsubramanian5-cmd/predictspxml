@@ -1,0 +1,77 @@
+{
+  "reviewed_at": "2026-11-07",
+  "method": "Each annual PDF page rendered locally with PyMuPDF and visually reviewed. Holiday squares and standard-expiration markings transcribed explicitly. RTH session existence only: early-close days remain sessions; no intraday closing times asserted.",
+  "years": {
+    "2016": {
+      "pdf_sha256": "7dfd8f2318c26174d7c3e767fded819d407abb6cbd236bff194320311f0aa293",
+      "holidays": ["01-01", "01-18", "02-15", "03-25", "05-30", "07-04", "09-05", "11-24", "12-26"],
+      "standard_monthly_days": [15, 19, 18, 15, 20, 17, 15, 19, 16, 21, 18, 16]
+    },
+    "2017": {
+      "pdf_sha256": "aa4d5180362cb6c07fd0727aa5a408a391fdb5f40ca01e6355321d052cc1b64a",
+      "holidays": ["01-02", "01-16", "02-20", "04-14", "05-29", "07-04", "09-04", "11-23", "12-25"],
+      "standard_monthly_days": [20, 17, 17, 21, 19, 16, 21, 18, 15, 20, 17, 15]
+    },
+    "2018": {
+      "pdf_sha256": "d750b653e47e6daf3ead5cc65ca36d4c6df3d28accbe3cfcd120e18d9133ea8d",
+      "holidays": ["01-01", "01-15", "02-19", "03-30", "05-28", "07-04", "09-03", "11-22", "12-25"],
+      "standard_monthly_days": [19, 16, 16, 20, 18, 15, 20, 17, 21, 19, 16, 21]
+    },
+    "2019": {
+      "pdf_sha256": "a23c16b8dc8be98c09caa8a563c784d0ce2c3dbc3681b696fb0170307507620d",
+      "holidays": ["01-01", "01-21", "02-18", "04-19", "05-27", "07-04", "09-02", "11-28", "12-25"],
+      "standard_monthly_days": [18, 15, 15, 18, 17, 21, 19, 16, 20, 18, 15, 20]
+    },
+    "2020": {
+      "pdf_sha256": "e936ee2b1a5305318bbb764887ece60a099115943810a03f527a1970bf0d88ea",
+      "holidays": ["01-01", "01-20", "02-17", "04-10", "05-25", "07-03", "09-07", "11-26", "12-25"],
+      "standard_monthly_days": [17, 21, 20, 17, 15, 19, 17, 21, 18, 16, 20, 18]
+    },
+    "2021": {
+      "pdf_sha256": "694fb5a0c75321561802f2a2dd3912614991a711d08389d8135727f5e1d074d0",
+      "holidays": ["01-01", "01-18", "02-15", "04-02", "05-31", "07-05", "09-06", "11-25", "12-24"],
+      "standard_monthly_days": [15, 19, 19, 16, 21, 18, 16, 20, 17, 15, 19, 17]
+    },
+    "2022": {
+      "pdf_sha256": "6f3b1e751d0c0cf14b52d685095234a717d5f8e43ed9f96136ba1a4bae59b3b8",
+      "holidays": ["01-17", "02-21", "04-15", "05-30", "06-20", "07-04", "09-05", "11-24", "12-26"],
+      "standard_monthly_days": [21, 18, 18, 14, 20, 17, 15, 19, 16, 21, 18, 16]
+    },
+    "2023": {
+      "pdf_sha256": "fdfbe54a47b4a6a15e5527694be8de6465a42f5788dab0365c49c5e855594f3a",
+      "holidays": ["01-02", "01-16", "02-20", "04-07", "05-29", "06-19", "07-04", "09-04", "11-23", "12-25"],
+      "standard_monthly_days": [20, 17, 17, 21, 19, 16, 21, 18, 15, 20, 17, 15]
+    },
+    "2024": {
+      "pdf_sha256": "d56420fbf7344221caf4db2f599f51abe4a42b77e9d5406d5bdd6c1bd226a70b",
+      "holidays": ["01-01", "01-15", "02-19", "03-29", "05-27", "06-19", "07-04", "09-02", "11-28", "12-25"],
+      "standard_monthly_days": [19, 16, 15, 19, 17, 21, 19, 16, 20, 18, 15, 20]
+    },
+    "2025": {
+      "pdf_sha256": "6bdc3ed80c411b20926e347f7b09bf69aae15328ff2b98a6228cd896dd1e250e",
+      "holidays": ["01-01", "01-20", "02-17", "04-18", "05-26", "06-19", "07-04", "09-01", "11-27", "12-25"],
+      "standard_monthly_days": [17, 21, 21, 17, 16, 20, 18, 15, 19, 17, 21, 19]
+    },
+    "2026": {
+      "pdf_sha256": "421a0699055b99ebc2dea6da53666939bc0918882d1f615da5664582a52b3c9e",
+      "holidays": ["01-01", "01-19", "02-16", "04-03", "05-25", "06-19", "07-03", "09-07", "11-26", "12-25"],
+      "standard_monthly_days": [16, 20, 20, 17, 15, 18, 17, 21, 18, 16, 20, 18]
+    }
+  },
+  "exceptional_closures": [
+    {
+      "date": "2018-12-05",
+      "reason": "National Day of Mourning; Cboe options exchanges closed",
+      "source_url": "https://cdn.cboe.com/resources/schedule_update/2018/Cboe-to-Observe-National-Day-of-Mourning-on-Wednesday-December-5-2018.pdf",
+      "reference_id": "C2018120300",
+      "verification": "Official notice read through web tool; local PDF bytes not retrieved"
+    },
+    {
+      "date": "2025-01-09",
+      "reason": "National Day of Mourning; no SPX RTH or curb session (GTH excluded from this calendar)",
+      "source_url": "https://cdn.cboe.com/resources/schedule_update/2025/Cboe-to-Observe-National-Day-of-Mourning-on-Thursday-January-9-2025.pdf",
+      "reference_id": "C2024123101",
+      "verification": "Official notice read through web tool; local PDF bytes not retrieved"
+    }
+  ]
+}

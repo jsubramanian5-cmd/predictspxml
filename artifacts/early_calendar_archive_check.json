@@ -1,0 +1,44 @@
+{
+  "archive": "data\\imports\\cboe-options-calendars-2016-2019.zip",
+  "checked_at": "2026-11-07T19:48:51.505055+00:00",
+  "archive_sha256": "f48d09e553c24075cb8841ebb47cd822ba452460958d0fa510f7fe614630b0ad",
+  "records": [
+    {
+      "year": 2016,
+      "file": "Cboe2016OPTIONSCalendar.pdf",
+      "source": "https://web.archive.org/web/20160518185439id_/http://www.cboe.com:80/aboutcboe/xcal2016.pdf",
+      "bytes": 194704,
+      "sha256": "7dfd8f2318c26174d7c3e767fded819d407abb6cbd236bff194320311f0aa293",
+      "crc_and_manifest_match": true,
+      "pdf_header_and_eof": true
+    },
+    {
+      "year": 2017,
+      "file": "Cboe2017OPTIONSCalendar.pdf",
+      "source": "https://web.archive.org/web/20170712200947id_/http://www.cboe.com:80/AboutCBOE/xcal2017.pdf",
+      "bytes": 1138222,
+      "sha256": "aa4d5180362cb6c07fd0727aa5a408a391fdb5f40ca01e6355321d052cc1b64a",
+      "crc_and_manifest_match": true,
+      "pdf_header_and_eof": true
+    },
+    {
+      "year": 2018,
+      "file": "Cboe2018OPTIONSCalendar.pdf",
+      "source": "https://web.archive.org/web/20201112035600id_/https://www.cboe.com/aboutcboe/xcal2018.pdf",
+      "bytes": 1003974,
+      "sha256": "d750b653e47e6daf3ead5cc65ca36d4c6df3d28accbe3cfcd120e18d9133ea8d",
+      "crc_and_manifest_match": true,
+      "pdf_header_and_eof": true
+    },
+    {
+      "year": 2019,
+      "file": "Cboe2019OPTIONSCalendar.pdf",
+      "source": "https://web.archive.org/web/20190115105923id_/http://www.cboe.com/aboutcboe/Cboe2019OPTIONSCalendar-Web-v1.1%20copy.pdf",
+      "bytes": 1290715,
+      "sha256": "a23c16b8dc8be98c09caa8a563c784d0ce2c3dbc3681b696fb0170307507620d",
+      "crc_and_manifest_match": true,
+      "pdf_header_and_eof": true
+    }
+  ],
+  "limitation": "File integrity checked. Source URLs are supplied archive provenance; dates, legend markings and exceptional closures have not been independently transcribed or visually verified."
+}

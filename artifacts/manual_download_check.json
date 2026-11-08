@@ -1,0 +1,41 @@
+[
+  {
+    "dataset": "spx",
+    "rows": 2609,
+    "valid_values": 2513,
+    "missing_values": 96,
+    "nonpositive_values": 0,
+    "nonfinite_nonmissing_values": 0,
+    "duplicate_dates": 0,
+    "invalid_dates": 0,
+    "start": "2016-11-07",
+    "end": "2026-11-05",
+    "sha256": "e3d7566c49052717d5f4afd0dd50c0c7056f6e5859c5dc83d2f71437c17c2c77"
+  },
+  {
+    "dataset": "vix",
+    "rows": 9311,
+    "valid_values": 9311,
+    "missing_values": 0,
+    "nonpositive_values": 0,
+    "nonfinite_nonmissing_values": 0,
+    "duplicate_dates": 0,
+    "invalid_dates": 0,
+    "start": "1990-01-02",
+    "end": "2026-11-06",
+    "sha256": "7e647d50a872b4aa64deaef1dfd17b0e1e3b88887cedc4c1fa861d242ecb7383"
+  },
+  {
+    "dataset": "vix9d",
+    "rows": 3985,
+    "valid_values": 3985,
+    "missing_values": 0,
+    "nonpositive_values": 0,
+    "nonfinite_nonmissing_values": 0,
+    "duplicate_dates": 0,
+    "invalid_dates": 0,
+    "start": "2011-01-04",
+    "end": "2026-11-06",
+    "sha256": "98b2b7523f828e099446eebbc89f8422314ec0456b2085e161b781035ce15e55"
+  }
+]

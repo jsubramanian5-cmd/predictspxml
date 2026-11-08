@@ -1,0 +1,44 @@
+{
+  "weekly": {
+    "benchmark": {
+      "family": "scaled"
+    },
+    "ml": {
+      "family": "xgb",
+      "max_depth": 2,
+      "min_child_weight": 30,
+      "n_estimators": 100,
+      "reg_lambda": 50
+    },
+    "volatility_threshold": 13.67,
+    "plan": {
+      "status": "ready",
+      "reason": "",
+      "training_start": "2017-01-01 00:00:00",
+      "development_start": "2022-01-01 00:00:00",
+      "test_start": "2024-01-01 00:00:00",
+      "test_end": "2025-12-31 00:00:00"
+    }
+  },
+  "monthly": {
+    "benchmark": {
+      "family": "scaled"
+    },
+    "ml": {
+      "family": "xgb",
+      "max_depth": 1,
+      "min_child_weight": 20,
+      "n_estimators": 50,
+      "reg_lambda": 50
+    },
+    "volatility_threshold": 15.88,
+    "plan": {
+      "status": "ready",
+      "reason": "",
+      "training_start": "2017-01-01 00:00:00",
+      "development_start": "2022-01-01 00:00:00",
+      "test_start": "2024-01-01 00:00:00",
+      "test_end": "2025-12-31 00:00:00"
+    }
+  }
+}

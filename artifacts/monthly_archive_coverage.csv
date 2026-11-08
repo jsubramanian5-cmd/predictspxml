@@ -1,0 +1,13 @@
+year,dated_records,month_only_records,source_url
+2015,0,12,https://www.cboe.com/index_settlement_values/get_sv_data/S/2015/
+2016,0,12,https://www.cboe.com/index_settlement_values/get_sv_data/S/2016/
+2017,0,12,https://www.cboe.com/index_settlement_values/get_sv_data/S/2017/
+2018,0,12,https://www.cboe.com/index_settlement_values/get_sv_data/S/2018/
+2019,0,12,https://www.cboe.com/index_settlement_values/get_sv_data/S/2019/
+2020,12,0,https://www.cboe.com/index_settlement_values/get_sv_data/S/2020/
+2021,12,0,https://www.cboe.com/index_settlement_values/get_sv_data/S/2021/
+2022,12,0,https://www.cboe.com/index_settlement_values/get_sv_data/S/2022/
+2023,12,0,https://www.cboe.com/index_settlement_values/get_sv_data/S/2023/
+2024,12,0,https://www.cboe.com/index_settlement_values/get_sv_data/S/2024/
+2025,12,0,https://www.cboe.com/index_settlement_values/get_sv_data/S/2025/
+2026,10,0,https://www.cboe.com/index_settlement_values/get_sv_data/S/2026/

@@ -1,0 +1,10 @@
+{
+  "dataset": "specifications",
+  "source_url": "https://www.cboe.com/tradable-products/sp-500/spx-options/spx-specifications/",
+  "resolved_url": "https://www.cboe.com/tradable-products/sp-500/spx-options/spx-specifications/",
+  "retrieved_at": "2026-11-07T21:35:47.988684+00:00",
+  "published_at": null,
+  "http_last_modified": null,
+  "sha256": "dc852599f45f7bc4a6c36e4fe34acb7f6caa48512cfc60118ece7c1fc5d5975c",
+  "snapshot": "specifications-dc852599f45f7bc4a6c36e4fe34acb7f6caa48512cfc60118ece7c1fc5d5975c.raw"
+}

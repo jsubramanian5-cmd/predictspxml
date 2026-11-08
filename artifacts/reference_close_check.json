@@ -1,0 +1,9 @@
+{
+  "file": "data\\imports\\sp500-close-2026-11-06.json",
+  "date": "2026-11-06",
+  "value": 7376.86,
+  "source": "https://www.cboe.com/index_settlement_values/get_sv_data/W/2026/",
+  "existing_settlement_record_match": true,
+  "accepted_as_FRED_reference": false,
+  "reason": "Supplied file is a Cboe SPXW settlement record; it is not a FRED SP500 observation. SP500.csv remains unchanged through 2026-11-05."
+}

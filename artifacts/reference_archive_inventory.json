@@ -1,0 +1,142 @@
+{
+  "archive": "data\\imports\\cboe-historical-calendars-and-listing-records.zip",
+  "archive_sha256": "4522b88901a1844ef2e1a76b574192cb8530d5fb17844dadd4bd1bc1b9c6e2db",
+  "calendar_years": [
+    2020,
+    2021,
+    2022,
+    2023,
+    2024,
+    2025,
+    2026
+  ],
+  "documents": [
+    {
+      "year": 2020,
+      "file": "Cboe2020OPTIONSCalendar.pdf",
+      "source": "https://cdn.cboe.com/resources/options/Cboe2020OPTIONSCalendar.pdf",
+      "bytes": 539953,
+      "manifest": "calendar-manifest.json",
+      "available": true,
+      "sha256": "e936ee2b1a5305318bbb764887ece60a099115943810a03f527a1970bf0d88ea"
+    },
+    {
+      "year": 2021,
+      "file": "Cboe2021OPTIONSCalendar.pdf",
+      "source": "https://cdn.cboe.com/resources/options/Cboe2021OPTIONSCalendar.pdf",
+      "bytes": 852484,
+      "manifest": "calendar-manifest.json",
+      "available": true,
+      "sha256": "694fb5a0c75321561802f2a2dd3912614991a711d08389d8135727f5e1d074d0"
+    },
+    {
+      "year": 2022,
+      "file": "Cboe2022OPTIONSCalendar.pdf",
+      "source": "https://cdn.cboe.com/resources/options/Cboe2022OPTIONSCalendar.pdf",
+      "bytes": 704801,
+      "manifest": "calendar-manifest.json",
+      "available": true,
+      "sha256": "6f3b1e751d0c0cf14b52d685095234a717d5f8e43ed9f96136ba1a4bae59b3b8"
+    },
+    {
+      "year": 2023,
+      "file": "Cboe2023OPTIONSCalendar.pdf",
+      "source": "https://cdn.cboe.com/resources/options/Cboe2023OPTIONSCalendar.pdf",
+      "bytes": 427097,
+      "manifest": "calendar-manifest.json",
+      "available": true,
+      "sha256": "fdfbe54a47b4a6a15e5527694be8de6465a42f5788dab0365c49c5e855594f3a"
+    },
+    {
+      "year": 2024,
+      "file": "Cboe2024OPTIONSCalendar.pdf",
+      "source": "https://cdn.cboe.com/resources/options/Cboe2024OPTIONSCalendar.pdf",
+      "bytes": 960613,
+      "manifest": "calendar-manifest.json",
+      "available": true,
+      "sha256": "d56420fbf7344221caf4db2f599f51abe4a42b77e9d5406d5bdd6c1bd226a70b"
+    },
+    {
+      "year": 2025,
+      "file": "Cboe2025OPTIONSCalendar.pdf",
+      "source": "https://cdn.cboe.com/resources/options/Cboe2025OPTIONSCalendar.pdf",
+      "bytes": 1105574,
+      "manifest": "calendar-manifest.json",
+      "available": true,
+      "sha256": "6bdc3ed80c411b20926e347f7b09bf69aae15328ff2b98a6228cd896dd1e250e"
+    },
+    {
+      "year": 2026,
+      "file": "Cboe2026OPTIONSCalendar.pdf",
+      "source": "https://cdn.cboe.com/resources/options/Cboe2026OPTIONSCalendar.pdf",
+      "bytes": 1009510,
+      "manifest": "calendar-manifest.json",
+      "available": true,
+      "sha256": "421a0699055b99ebc2dea6da53666939bc0918882d1f615da5664582a52b3c9e"
+    },
+    {
+      "file": "spx-wednesday-listing-2016.pdf",
+      "source": "https://cdn.cboe.com/resources/regulation/circulars/regulatory/RG16-024.pdf",
+      "bytes": 60150,
+      "manifest": "reference-manifest.json",
+      "available": true,
+      "sha256": "6cee69cd7e7c2f66fd391069eab7c4cbf5b2063f479ae4d39f5aee8e5a5fc136"
+    },
+    {
+      "file": "spx-expiration-pilot-report-2021.pdf",
+      "source": "https://cdn.cboe.com/resources/options/regulation/pm_settlement_pilot/non_standard_expiration/2021%20Annual%20Pilot%20Report%20-%20Nonstandard%20Expirations.pdf",
+      "bytes": 190281,
+      "manifest": "reference-manifest.json",
+      "available": true,
+      "sha256": "206aae972fd034e51596eff113a78432fe7740e9007dc4378c35b9b654ab3746"
+    },
+    {
+      "file": "spx-tuesday-thursday-launch-2022.pdf",
+      "source": "https://s202.q4cdn.com/174824971/files/doc_news/2022/04/downloadpdf1691634390090.pdf",
+      "bytes": 58984,
+      "manifest": "reference-manifest.json",
+      "available": true,
+      "sha256": "d009247bddc06271c14257fde3f042fb008f5174bd391ef14fc87c9ac21cd379"
+    },
+    {
+      "file": "spx-expiration-listing-change-2024.pdf",
+      "source": "https://cdn.cboe.com/resources/product_update/2024/Changes-to-Available-Expirations-for-SPX-Weekly-Options.pdf",
+      "bytes": 129794,
+      "manifest": "reference-manifest.json",
+      "available": true,
+      "sha256": "0f4eb78245b86e909b4c506729536c2467624b2f31d1a12689c67724b947cae3"
+    },
+    {
+      "file": "spx-specifications-current.html",
+      "source": "https://www.cboe.com/tradable-products/sp-500/spx-options/spx-specifications",
+      "bytes": 429970,
+      "manifest": "reference-manifest.json",
+      "available": true,
+      "sha256": "a8351a62e647328b00dd48a7b45522f40c197f4628a9dbf0fdaecb674259155e"
+    },
+    {
+      "file": "available-weeklys-current.html",
+      "source": "https://www.cboe.com/available_weeklys/",
+      "bytes": 613671,
+      "manifest": "reference-manifest.json",
+      "available": true,
+      "sha256": "6492847b5739aa9af9ced58f4b4187fe2293401a6695dbbd4d1774a09b33dd50"
+    },
+    {
+      "file": "us-options-hours-and-holidays-current.html",
+      "source": "https://www.cboe.com/about/hours/us-options/",
+      "bytes": 415968,
+      "manifest": "reference-manifest.json",
+      "available": true,
+      "sha256": "7080a662a2e9305d26cdf935e457eb618b9036a2f54530804adcadf6ec81e972"
+    },
+    {
+      "file": "historical-option-data-access.html",
+      "source": "https://datashop.cboe.com/option-quotes",
+      "error": "HTTP Error 403: Forbidden",
+      "manifest": "reference-manifest.json",
+      "available": false
+    }
+  ],
+  "limitation": "Manifest, byte counts and signatures checked; PDF contents not parsed. Current snapshots and rule notices are not complete historical eligibility records."
+}

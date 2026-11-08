@@ -1,0 +1,38 @@
+{
+  "reviewed_at": "2026-11-07",
+  "scope": "Settlement-date eligibility for the requested EOW PM / standard monthly AM forecast targets. Not a strike-level chain, liquidity or historical listing-time archive.",
+  "eow_definition_source": "https://www.sec.gov/files/rules/sro/cboe/2010/34-62911.pdf",
+  "eow_definition_locator": "Release 34-62911, pages 1-2 and footnote 5",
+  "third_friday_pm_distinction_source": "https://cdn.cboe.com/resources/regulation/circulars/regulatory/RG17-054.pdf",
+  "third_friday_pm_distinction": "The May 2017 symbol conversion added existing third-Friday PM series to SPXW. These are not the EOW target even though their symbol is SPXW.",
+  "reviewed_local_documents": [
+    {
+      "file": "spx-expiration-pilot-report-2021.pdf",
+      "sha256": "206aae972fd034e51596eff113a78432fe7740e9007dc4378c35b9b654ab3746",
+      "source": "https://cdn.cboe.com/resources/options/regulation/pm_settlement_pilot/non_standard_expiration/2021%20Annual%20Pilot%20Report%20-%20Nonstandard%20Expirations.pdf",
+      "use": "Retrospective EOW/monthly AM symbol definitions; not sole proof of eligibility. Contains stale pilot-expiry boilerplate referring to 2019."
+    },
+    {
+      "file": "spx-wednesday-listing-2016.pdf",
+      "sha256": "6cee69cd7e7c2f66fd391069eab7c4cbf5b2063f479ae4d39f5aee8e5a5fc136",
+      "source": "https://cdn.cboe.com/resources/regulation/circulars/regulatory/RG16-024.pdf",
+      "use": "Wednesday SPXW is a separate expiry family and does not substitute for EOW."
+    },
+    {
+      "file": "spx-expiration-listing-change-2024.pdf",
+      "sha256": "0f4eb78245b86e909b4c506729536c2467624b2f31d1a12689c67724b947cae3",
+      "source": "https://cdn.cboe.com/resources/product_update/2024/Changes-to-Available-Expirations-for-SPX-Weekly-Options.pdf",
+      "explicit_eow_dates": ["2024-12-27", "2025-01-03", "2025-01-10"],
+      "use": "Independent explicit Friday EOW examples; this notice changes listing lead times, not settlement dates."
+    }
+  ],
+  "rules": [
+    "Actual standard monthly dates come from the hash-pinned visual calendar transcription, never an unadjusted third-Friday fallback.",
+    "EOW nominal weeks are Friday-identified, with settlement on the preceding verified session when Friday is closed.",
+    "Standard-monthly and last-regular-session-of-month collisions are excluded from the EOW target. Quarter-end is a month-end subset.",
+    "Each included historical EOW date must also have an explicit SPXW PM record in the supplied source archive. Absence of a record never proves ineligibility.",
+    "Excluded rows mean ineligible for this model's EOW target; they do not assert that no other PM contract existed.",
+    "No future expirations are asserted from calendar rules alone. The build stops at the requested as-of date.",
+    "Weeks whose prior-week reference needs dates outside the verified calendar are reported separately, not marked ineligible."
+  ]
+}

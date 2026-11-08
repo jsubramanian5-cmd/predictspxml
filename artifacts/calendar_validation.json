@@ -1,0 +1,152 @@
+{
+  "start": "2016-01-01",
+  "end": "2026-12-31",
+  "rows": 4018,
+  "sessions": 2765,
+  "sources": {
+    "2016": {
+      "source_url": "http://www.cboe.com:80/aboutcboe/xcal2016.pdf",
+      "archive_url": "https://web.archive.org/web/20160518185439id_/http://www.cboe.com:80/aboutcboe/xcal2016.pdf",
+      "annual_pdf_sha256": "7dfd8f2318c26174d7c3e767fded819d407abb6cbd236bff194320311f0aa293",
+      "source_snapshot": "cboe-options-calendars-2016-2019.zip!Cboe2016OPTIONSCalendar.pdf"
+    },
+    "2017": {
+      "source_url": "http://www.cboe.com:80/AboutCBOE/xcal2017.pdf",
+      "archive_url": "https://web.archive.org/web/20170712200947id_/http://www.cboe.com:80/AboutCBOE/xcal2017.pdf",
+      "annual_pdf_sha256": "aa4d5180362cb6c07fd0727aa5a408a391fdb5f40ca01e6355321d052cc1b64a",
+      "source_snapshot": "cboe-options-calendars-2016-2019.zip!Cboe2017OPTIONSCalendar.pdf"
+    },
+    "2018": {
+      "source_url": "https://www.cboe.com/aboutcboe/xcal2018.pdf",
+      "archive_url": "https://web.archive.org/web/20201112035600id_/https://www.cboe.com/aboutcboe/xcal2018.pdf",
+      "annual_pdf_sha256": "d750b653e47e6daf3ead5cc65ca36d4c6df3d28accbe3cfcd120e18d9133ea8d",
+      "source_snapshot": "cboe-options-calendars-2016-2019.zip!Cboe2018OPTIONSCalendar.pdf"
+    },
+    "2019": {
+      "source_url": "http://www.cboe.com/aboutcboe/Cboe2019OPTIONSCalendar-Web-v1.1%20copy.pdf",
+      "archive_url": "https://web.archive.org/web/20190115105923id_/http://www.cboe.com/aboutcboe/Cboe2019OPTIONSCalendar-Web-v1.1%20copy.pdf",
+      "annual_pdf_sha256": "a23c16b8dc8be98c09caa8a563c784d0ce2c3dbc3681b696fb0170307507620d",
+      "source_snapshot": "cboe-options-calendars-2016-2019.zip!Cboe2019OPTIONSCalendar.pdf"
+    },
+    "2020": {
+      "source_url": "https://cdn.cboe.com/resources/options/Cboe2020OPTIONSCalendar.pdf",
+      "archive_url": "https://cdn.cboe.com/resources/options/Cboe2020OPTIONSCalendar.pdf",
+      "annual_pdf_sha256": "e936ee2b1a5305318bbb764887ece60a099115943810a03f527a1970bf0d88ea",
+      "source_snapshot": "cboe-historical-calendars-and-listing-records.zip!Cboe2020OPTIONSCalendar.pdf"
+    },
+    "2021": {
+      "source_url": "https://cdn.cboe.com/resources/options/Cboe2021OPTIONSCalendar.pdf",
+      "archive_url": "https://cdn.cboe.com/resources/options/Cboe2021OPTIONSCalendar.pdf",
+      "annual_pdf_sha256": "694fb5a0c75321561802f2a2dd3912614991a711d08389d8135727f5e1d074d0",
+      "source_snapshot": "cboe-historical-calendars-and-listing-records.zip!Cboe2021OPTIONSCalendar.pdf"
+    },
+    "2022": {
+      "source_url": "https://cdn.cboe.com/resources/options/Cboe2022OPTIONSCalendar.pdf",
+      "archive_url": "https://cdn.cboe.com/resources/options/Cboe2022OPTIONSCalendar.pdf",
+      "annual_pdf_sha256": "6f3b1e751d0c0cf14b52d685095234a717d5f8e43ed9f96136ba1a4bae59b3b8",
+      "source_snapshot": "cboe-historical-calendars-and-listing-records.zip!Cboe2022OPTIONSCalendar.pdf"
+    },
+    "2023": {
+      "source_url": "https://cdn.cboe.com/resources/options/Cboe2023OPTIONSCalendar.pdf",
+      "archive_url": "https://cdn.cboe.com/resources/options/Cboe2023OPTIONSCalendar.pdf",
+      "annual_pdf_sha256": "fdfbe54a47b4a6a15e5527694be8de6465a42f5788dab0365c49c5e855594f3a",
+      "source_snapshot": "cboe-historical-calendars-and-listing-records.zip!Cboe2023OPTIONSCalendar.pdf"
+    },
+    "2024": {
+      "source_url": "https://cdn.cboe.com/resources/options/Cboe2024OPTIONSCalendar.pdf",
+      "archive_url": "https://cdn.cboe.com/resources/options/Cboe2024OPTIONSCalendar.pdf",
+      "annual_pdf_sha256": "d56420fbf7344221caf4db2f599f51abe4a42b77e9d5406d5bdd6c1bd226a70b",
+      "source_snapshot": "cboe-historical-calendars-and-listing-records.zip!Cboe2024OPTIONSCalendar.pdf"
+    },
+    "2025": {
+      "source_url": "https://cdn.cboe.com/resources/options/Cboe2025OPTIONSCalendar.pdf",
+      "archive_url": "https://cdn.cboe.com/resources/options/Cboe2025OPTIONSCalendar.pdf",
+      "annual_pdf_sha256": "6bdc3ed80c411b20926e347f7b09bf69aae15328ff2b98a6228cd896dd1e250e",
+      "source_snapshot": "cboe-historical-calendars-and-listing-records.zip!Cboe2025OPTIONSCalendar.pdf"
+    },
+    "2026": {
+      "source_url": "https://cdn.cboe.com/resources/options/Cboe2026OPTIONSCalendar.pdf",
+      "archive_url": "https://cdn.cboe.com/resources/options/Cboe2026OPTIONSCalendar.pdf",
+      "annual_pdf_sha256": "421a0699055b99ebc2dea6da53666939bc0918882d1f615da5664582a52b3c9e",
+      "source_snapshot": "cboe-historical-calendars-and-listing-records.zip!Cboe2026OPTIONSCalendar.pdf"
+    }
+  },
+  "price_checks": [
+    {
+      "file": "SP500.csv",
+      "start": "2016-11-07",
+      "end": "2026-11-05",
+      "expected_sessions": 2513,
+      "positive_values": 2513,
+      "missing_sessions": [],
+      "observations_on_closed_dates": []
+    },
+    {
+      "file": "VIX_History.csv",
+      "start": "2016-01-01",
+      "end": "2026-11-06",
+      "expected_sessions": 2728,
+      "positive_values": 2761,
+      "missing_sessions": [],
+      "observations_on_closed_dates": [
+        "2022-05-30",
+        "2022-06-20",
+        "2022-07-04",
+        "2022-09-05",
+        "2022-11-24",
+        "2023-01-16",
+        "2023-02-20",
+        "2023-05-29",
+        "2023-06-19",
+        "2023-07-04",
+        "2023-09-04",
+        "2023-11-23",
+        "2024-01-15",
+        "2024-02-19",
+        "2024-05-27",
+        "2024-06-19",
+        "2024-07-04",
+        "2024-09-02",
+        "2024-11-28",
+        "2025-01-09",
+        "2025-01-20",
+        "2025-02-17",
+        "2025-05-26",
+        "2025-06-19",
+        "2025-07-04",
+        "2025-09-01",
+        "2025-11-27",
+        "2026-01-19",
+        "2026-02-16",
+        "2026-05-25",
+        "2026-06-19",
+        "2026-07-03",
+        "2026-09-07"
+      ]
+    },
+    {
+      "file": "VIX9D_History.csv",
+      "start": "2016-01-01",
+      "end": "2026-11-06",
+      "expected_sessions": 2728,
+      "positive_values": 2728,
+      "missing_sessions": [],
+      "observations_on_closed_dates": []
+    }
+  ],
+  "standard_expiration_check": {
+    "checked_dated_SET_records": 82,
+    "mismatches": []
+  },
+  "review_file": "docs/calendar_review.json",
+  "limitations": [
+    "RTH existence only; early-close days remain sessions.",
+    "Annual calendars supplemented with two dated mourning notices.",
+    "No weekly contract eligibility inferred from trading sessions.",
+    "VIX observations on RTH-closed dates remain in raw data but are excluded from session features."
+  ],
+  "gth_reference_urls": [
+    "https://cdn.cboe.com/resources/schedule_update/2022/Cboe-Holiday-Reminder-Closed-on-Monday-May-30-2022.pdf",
+    "https://cdn.cboe.com/resources/regulation/rule_filings/approved/2024/SR-CBOE-2024-031.pdf"
+  ]
+}

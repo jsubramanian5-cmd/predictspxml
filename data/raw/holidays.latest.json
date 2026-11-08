@@ -1,0 +1,10 @@
+{
+  "dataset": "holidays",
+  "source_url": "https://www.cboe.com/about/hours/us-options/",
+  "resolved_url": "https://www.cboe.com/about/hours/us-options/",
+  "retrieved_at": "2026-11-07T21:35:48.320845+00:00",
+  "published_at": null,
+  "http_last_modified": null,
+  "sha256": "87850c9c010973e6f204e12bbdf2e2953dfda468a3cf1d143c7d825d36f028b7",
+  "snapshot": "holidays-87850c9c010973e6f204e12bbdf2e2953dfda468a3cf1d143c7d825d36f028b7.raw"
+}
