@@ -146,6 +146,12 @@ def test_daily_table_lists_active_forecasts_and_explains_missing_ones(tmp_path):
     assert weekly.forecast_status == 'issued' and weekly.expiration == '2026-11-13'
     assert (weekly.p10_level, weekly.median_level, weekly.p90_level) == (7097.78, 7445.9, 7684.36)
     assert monthly.forecast_status == 'no_forecast' and monthly.note == 'pending: not yet eligible'
+    # Return columns are log bps from the reference close, from the unrounded levels.
+    assert (weekly.p10_bps, weekly.median_bps, weekly.p90_bps) == (-385.7, 93.2, 408.4)
+    assert weekly.schema_version == monthly.schema_version == '1' and pd.isna(monthly.p10_bps)
+    assert list(table.columns)[:13] == ['as_of_date', 'horizon', 'forecast_status', 'note', 'reference_date', 'expiration',
+                                        'settlement_type', 'reference_close', 'p10_level', 'median_level', 'p90_level',
+                                        'issued_at', 'model_version']  # existing columns keep their positions
     # New York date, not UTC: 02:30 UTC on 11-10 is still the evening of 11-09 in New York.
     path, _ = write_daily_forecast(tmp_path, forecasts, statuses, pd.Timestamp('2026-11-10T02:30:00Z'))
     assert path.name == 'forecast_2026-11-09.csv' and (tmp_path / 'latest_forecast.csv').exists()

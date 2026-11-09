@@ -67,6 +67,22 @@ schtasks /Create /SC WEEKLY /D MON,TUE,WED,THU,FRI /ST 07:30 /TN "spx-live-forec
 ## Outputs to monitor
 
 - `artifacts/latest_forecast.csv` and `artifacts/daily/forecast_YYYY-MM-DD.csv`: what is currently issued.
+  **Columns (schema version 1).** New columns are only ever appended and `schema_version` is bumped; existing
+  columns are never renamed, reordered or removed, so a downstream reader keyed on names or positions keeps working.
+
+  | Column | Meaning |
+  |---|---|
+  | `as_of_date` | New York calendar date of the run |
+  | `horizon`, `forecast_status` | `weekly`/`monthly`; `issued`, or `no_forecast` with the reason in `note` |
+  | `reference_date`, `reference_close` | Session whose close the forecast starts from, and that close |
+  | `expiration`, `settlement_type` | Contract it applies to: `SPXW_PM` (weekly, settles to the close) or `SET_AM` (monthly, opening-based) |
+  | `p10_level`, `median_level`, `p90_level` | 10th/50th/90th percentile SPX settlement levels |
+  | `issued_at`, `model_version` | When the forecast was recorded (UTC), and the model/data version hash |
+  | `p10_bps`, `median_bps`, `p90_bps` | The same quantiles as log-return basis points from `reference_close`, for applying to a different entry spot |
+  | `schema_version` | `1` |
+
+  The range runs from the *reference close* to settlement. An entry after the reference session (for example Monday
+  after a Friday reference) has already seen the intervening move, which the model has not.
 - `artifacts/live_scorecard.csv`: one row per issued forecast, scored when its settlement is known
   (`inside_80`, `error_points`, `error_bps`, `interval_score_bps`). `actual_source` is `official_settlement`
   when the Cboe record is in the data, or `cboe_close_proxy` for a weekly contract whose official record is not

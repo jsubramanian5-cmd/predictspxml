@@ -39,9 +39,12 @@ def load_selected(output):
     return selected
 
 
+# Columns are an interface for downstream strategies: append new ones at the end and bump SCHEMA_VERSION;
+# never rename, reorder or remove existing ones.
+SCHEMA_VERSION = "1"
 DAILY_COLUMNS = ["as_of_date", "horizon", "forecast_status", "note", "reference_date", "expiration",
                  "settlement_type", "reference_close", "p10_level", "median_level", "p90_level",
-                 "issued_at", "model_version"]
+                 "issued_at", "model_version", "p10_bps", "median_bps", "p90_bps", "schema_version"]
 
 
 def daily_forecast_table(forecasts, statuses, as_of):
@@ -57,11 +60,18 @@ def daily_forecast_table(forecasts, statuses, as_of):
                              settlement_type=record.settlement_type, reference_close=round(record.reference_close, 2),
                              p10_level=round(record.lower, 2), median_level=round(record.median, 2),
                              p90_level=round(record.upper, 2), issued_at=record.actual_issue_time,
-                             model_version=record.model_version))
+                             model_version=record.model_version,
+                             # Log-return basis points from the reference close, so a consumer entering at a
+                             # different spot can apply the same distribution to its own price.
+                             p10_bps=round(10000 * np.log(record.lower / record.reference_close), 1),
+                             median_bps=round(10000 * np.log(record.median / record.reference_close), 1),
+                             p90_bps=round(10000 * np.log(record.upper / record.reference_close), 1),
+                             schema_version=SCHEMA_VERSION))
         if mine.empty:
             status = statuses.loc[statuses.horizon.eq(horizon), "status"]
             rows.append(dict(as_of_date=as_of.date(), horizon=horizon, forecast_status="no_forecast",
-                             note=str(status.iloc[0]) if len(status) else "no status recorded"))
+                             note=str(status.iloc[0]) if len(status) else "no status recorded",
+                             schema_version=SCHEMA_VERSION))
     return pd.DataFrame(rows, columns=DAILY_COLUMNS)
 
 
