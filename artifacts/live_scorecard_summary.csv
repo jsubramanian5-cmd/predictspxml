@@ -1,0 +1,3 @@
+horizon,issued,scored,awaiting,inside_80,coverage_80,coverage_wilson_low,coverage_wilson_high,median_abs_error_points,mean_interval_score_bps,proxy_actuals,backtest_coverage_80,backtest_mean_interval_score_bps
+weekly,1,0,1,0,,,,,,0,0.783,662.5
+monthly,0,0,0,0,,,,,,0,0.792,1331.6

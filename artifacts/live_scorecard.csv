@@ -1,0 +1,2 @@
+horizon,reference_date,expiration,issued_at,reference_close,p10_level,median_level,p90_level,status,actual_level,actual_source,inside_80,error_points,error_bps,interval_score_bps
+weekly,2026-11-06,2026-11-13,2026-11-09T02:21:21.024932+00:00,7376.86,7097.78,7445.9,7684.36,awaiting_settlement,,,,,,
