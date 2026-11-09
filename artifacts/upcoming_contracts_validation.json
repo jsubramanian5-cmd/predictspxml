@@ -1,0 +1,17 @@
+{
+  "as_of": "2026-11-09",
+  "through": "2026-12-31",
+  "rows": 9,
+  "eligible_rows": 7,
+  "upcoming_sha256": "7e4026cea99aecc53108818b25bb345d00a3ca6485247aaaea8c1020cd45eb88",
+  "last_settled_nominal": {
+    "monthly": "2026-10-16",
+    "weekly": "2026-11-06"
+  },
+  "listing_basis": "calendar_derived_unverified",
+  "scheduled_observations": 513,
+  "limitations": [
+    "Eligibility is derived from the pinned Cboe annual calendar; no listing or settlement record exists for these contracts yet.",
+    "Historical contracts.csv rows are unchanged and take precedence."
+  ]
+}

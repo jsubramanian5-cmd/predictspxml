@@ -92,6 +92,27 @@ Monthly references come from the preceding month's listed standard AM settlement
 regardless of whether its SET label is available. Cross-check historical listing eligibility
 with contemporaneous Cboe specifications/circulars. Current rules alone are insufficient.
 
+## `upcoming_contracts.csv` (live forecasting only)
+
+`contracts.csv` holds only contracts backed by an official settlement record, so it can never
+contain the *next* contract. For live forecasts, generate a separate calendar-derived file:
+
+```powershell
+$env:PYTHONPATH = "src"; python -m scripts.build_upcoming_contracts --as-of 2026-11-09
+```
+
+It uses the hash-pinned annual Cboe calendar and the same classification as `contracts.csv`
+(end-of-week vs. standard-monthly/month-end collision), up to `--lookahead-days` (default 56) and
+never beyond the verified calendar. Every row carries `listing_basis=calendar_derived_unverified`
+and an empty `settlement_source_sha256`; no Cboe listing or settlement record exists for it yet.
+Historical rows are never changed. When a contract appears in `contracts.csv`, the loader drops
+its upcoming copy. Published forecast metadata records `contract_basis`. Rerun after each
+settlement refresh and each calendar year; the receipt is `artifacts/upcoming_contracts_validation.json`.
+
+With `Config(reference_date=None)` (the notebook default) each horizon forecasts its next
+unexpired contract whose 08:00 issue cutoff has not passed. A forecast still needs the reference
+session's SPX (FRED), VIX and VIX9D values; until they arrive the status says which are missing.
+
 ## `settlements.csv`
 
 The supplied `cboe-weeklys-settlement-values-all-years.zip` is also read automatically.

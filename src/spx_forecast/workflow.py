@@ -1,4 +1,5 @@
 """Small notebook-facing orchestration, with explicit independent horizon states."""
+import dataclasses
 import json
 import pickle
 
@@ -10,6 +11,7 @@ from .features import FEATURES, build_observations, input_times, price_features
 from .forecast import FORECAST_COLUMNS, dependency_versions, publish_forecast
 from .ingestion import audit, collect
 from .models import QuantileModel, candidates
+from .upcoming import merge_contracts
 
 
 def prepare(config):
@@ -31,7 +33,7 @@ def prepare(config):
     if "calendar" in datasets:
         calendar = OfficialCalendar(datasets["calendar"])
     if calendar is not None and 'contracts' in datasets:
-        schedule = contract_observations(datasets['contracts'], calendar)
+        schedule = contract_observations(merge_contracts(datasets['contracts'], datasets.get('upcoming_contracts')), calendar)
     if not missing:
         daily = price_features(datasets, calendar)
         observations = build_observations(schedule, daily, datasets, calendar)
@@ -136,16 +138,39 @@ def predictions(state, stage):
     return pd.concat(values, ignore_index=True) if values else pd.DataFrame()
 
 
+def upcoming_reference_date(schedule, horizon, now):
+    """Reference session of the horizon's next contract that is unexpired and whose issue window is still open."""
+    if schedule.empty:
+        return None
+    now = pd.Timestamp(now)
+    rows = schedule.loc[schedule.horizon.eq(horizon) & (pd.to_datetime(schedule.expiration) > now.tz_convert(None).normalize())]
+    if "cutoff" in rows:
+        rows = rows.loc[pd.to_datetime(rows.cutoff, utc=True) >= now]
+    return None if rows.empty else pd.Timestamp(rows.sort_values("expiration").reference_date.iloc[0])
+
+
 def forecast_once(config, state, now=None):
     now = pd.Timestamp.now(tz="UTC") if now is None else pd.Timestamp(now)
     records, statuses = [], []
     for horizon in ("weekly", "monthly"):
         calendar = state["calendar"]
         schedule = state["schedule"]
-        matching = schedule.loc[schedule.horizon.eq(horizon) & schedule.reference_date.eq(pd.Timestamp(config.reference_date))] if not schedule.empty else pd.DataFrame()
+        if config.reference_date is None:
+            reference = upcoming_reference_date(schedule, horizon, now)
+            if reference is None:
+                latest = schedule.loc[schedule.horizon.eq(horizon), "expiration"].max() if not schedule.empty else None
+                reason = (f"pending: no verified {horizon} contract expires after {now.date()}; latest listed expiration is "
+                          f"{pd.Timestamp(latest).date() if latest is not None and pd.notna(latest) else 'none'} "
+                          "(extend data/imports/contracts.csv with the next official listing)")
+                statuses.append(dict(horizon=horizon, checked_at=now, timing_status=reason, status=reason))
+                continue
+            horizon_config = dataclasses.replace(config, reference_date=str(reference.date()))
+        else:
+            horizon_config = config
+        matching = schedule.loc[schedule.horizon.eq(horizon) & schedule.reference_date.eq(pd.Timestamp(horizon_config.reference_date))] if not schedule.empty else pd.DataFrame()
         if calendar and len(matching):
-            complete, assumed, times = input_times(pd.Timestamp(config.reference_date), state["datasets"], calendar, live=True)
-            timing_status, _ = availability(config.reference_date, times, complete, now, calendar)
+            complete, assumed, times = input_times(pd.Timestamp(horizon_config.reference_date), state["datasets"], calendar, live=True)
+            timing_status, _ = availability(horizon_config.reference_date, times, complete, now, calendar)
         else:
             timing_status = "pending: verified contract/calendar or reference inputs unavailable"
         if horizon not in state["selected"]:
@@ -153,7 +178,7 @@ def forecast_once(config, state, now=None):
             record = None
         else:
             record, status = publish_forecast(horizon, state["observations"][horizon], state["selected"][horizon],
-                                              config, state["datasets"], calendar, state["manifest"], now)
+                                              horizon_config, state["datasets"], calendar, state["manifest"], now)
         if record:
             records.append(record)
         statuses.append(dict(horizon=horizon, checked_at=now, timing_status=timing_status, status=status))

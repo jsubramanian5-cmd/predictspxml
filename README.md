@@ -93,6 +93,11 @@ The user-requested short form works when Jupyter is on PATH:
 jupyter nbconvert --execute --to notebook --output spx_forecast.executed.ipynb notebooks/spx_forecast.ipynb
 ```
 
+## Live forecasts
+
+See [`docs/live_forecast.md`](docs/live_forecast.md) for the scheduled run order, exit codes and
+scheduling. Entry point: `python -m scripts.run_live_forecast`.
+
 ## Required official inputs
 
 The calendar has been built from visually reviewed Cboe annual documents for 2016–2026

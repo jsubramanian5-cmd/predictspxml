@@ -413,7 +413,7 @@ def collect(config):
                 store.manifest.append(dict(dataset=name, source_url=url, status="failed",
                                            attempted_at=datetime.now(timezone.utc).isoformat(),
                                            error=str(exc)[:260], sha256=None))
-    for name in ("calendar", "contracts", "settlements", "publications"):
+    for name in ("calendar", "contracts", "upcoming_contracts", "settlements", "publications"):
         path = config.imports / f"{name}.csv"
         if path.exists():
             # Invalid imports are errors, not silent pending/fallback states.

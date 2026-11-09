@@ -19,7 +19,10 @@ def publish_forecast(horizon, observations, selected, config, datasets, calendar
     desired = pd.Timestamp(config.reference_date)
     rows = observations.loc[observations.reference_date.eq(desired)]
     if rows.empty:
-        return None, "pending: no eligible contract with complete features for configured reference_date"
+        missing = [name for name in ("spx", "vix", "vix9d") if name not in datasets or
+                   not pd.to_datetime(datasets[name].date).eq(desired).any()]
+        detail = f"; no {', '.join(missing)} value for {desired.date()} yet" if missing else ""
+        return None, f"pending: no eligible contract with complete features for reference_date {desired.date()}{detail}"
     if len(rows) != 1:
         raise ValueError("Ambiguous forecast reference")
     row = rows.iloc[0]
@@ -44,7 +47,8 @@ def publish_forecast(horizon, observations, selected, config, datasets, calendar
                     source_hashes=[m["sha256"] for m in manifest],
                     seed=config.seed, dependency_versions=dependency_versions(),
                     issue_time=pd.Timestamp(now), reference_date=desired,
-                    quantile_crossed=bool(crossing[0]), input_ready_at=ready)
+                    quantile_crossed=bool(crossing[0]), input_ready_at=ready,
+                    contract_basis=str(row.get('listing_basis', 'settlement_record')))
     encoded = json.dumps(metadata, sort_keys=True, default=str)
     version = __version__ + "+" + hashlib.sha256(encoded.encode()).hexdigest()[:12]
     model_dir = config.output / "models"

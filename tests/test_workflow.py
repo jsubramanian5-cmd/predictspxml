@@ -220,3 +220,83 @@ def test_forecast_publication_is_idempotent(tmp_path, calendar, datasets, train_
     assert first['actual_issue_time'] == second['actual_issue_time']
     assert len(pd.read_csv(tmp_path/'forecasts.csv')) == 1
     assert first['lower'] <= first['median'] <= first['upper']
+
+
+def _schedule(rows):
+    frame = pd.DataFrame(rows, columns=['horizon', 'reference_date', 'expiration']).astype(
+        {'reference_date': 'datetime64[ns]', 'expiration': 'datetime64[ns]'})
+    # Issue window closes 08:00 New York (13:00 UTC) on the next session, approximated as the next day.
+    frame['cutoff'] = frame.reference_date + pd.Timedelta(days=3, hours=13)
+    return frame
+
+
+def test_upcoming_reference_date_picks_next_unexpired_contract_per_horizon():
+    from spx_forecast.workflow import upcoming_reference_date
+    schedule = _schedule([
+        ('weekly', '2026-10-30', '2026-11-06'), ('weekly', '2026-11-06', '2026-11-13'),
+        ('weekly', '2026-11-13', '2026-11-20'), ('monthly', '2026-10-16', '2026-11-20')])
+    now = pd.Timestamp('2026-11-09T00:46:00Z')
+    assert upcoming_reference_date(schedule, 'weekly', now) == pd.Timestamp('2026-11-06')
+    # The 10-16 reference's issue window closed on 10-19, so no monthly target is open yet.
+    assert upcoming_reference_date(schedule, 'monthly', now) is None
+    assert upcoming_reference_date(schedule, 'weekly', pd.Timestamp('2026-12-01T00:00:00Z')) is None
+
+
+def test_auto_reference_reports_last_listed_expiration_when_no_upcoming_contract(tmp_path):
+    from spx_forecast.workflow import forecast_once
+    config = Config(reference_date=None, output=tmp_path, raw=tmp_path/'raw',
+                    normalized=tmp_path/'normalized', imports=tmp_path/'imports')
+    config.prepare()
+    state = dict(calendar=None, selected={}, statuses={}, observations={}, manifest=[], datasets={},
+                 schedule=_schedule([('weekly', '2026-10-30', '2026-11-06'), ('monthly', '2026-09-18', '2026-10-16')]))
+    records, status = forecast_once(config, state, pd.Timestamp('2026-11-09T00:46:00Z'))
+    assert records.empty
+    assert status.status.str.startswith('pending: no verified').all()
+    assert 'latest listed expiration is 2026-11-06' in status.status.iloc[0]
+    assert 'latest listed expiration is 2026-10-16' in status.status.iloc[1]
+
+
+def _standard():
+    return pd.DataFrame({'month': ['2024-03', '2024-04', '2024-05'],
+                         'expiration': pd.to_datetime(['2024-03-15', '2024-04-19', '2024-05-17']),
+                         'source_url': 'https://cdn.cboe.com/resources/options/Cboe2024OPTIONSCalendar.pdf'})
+
+
+def test_upcoming_contracts_are_calendar_classified_and_tagged(calendar):
+    from spx_forecast.calendar import contract_observations
+    from spx_forecast.upcoming import LISTING_BASIS, merge_contracts, upcoming_contracts
+    last = {'weekly': pd.Timestamp('2024-03-01'), 'monthly': pd.Timestamp('2024-02-16')}
+    rows = upcoming_contracts(calendar, _standard(), last, '2024-04-12', 'https://www.sec.gov/rule.pdf')
+    weekly, monthly = (rows.loc[rows.horizon.eq(h)].set_index('nominal_expiration') for h in ('weekly', 'monthly'))
+    assert (rows.listing_basis == LISTING_BASIS).all() and (rows.settlement_source_sha256 == '').all()
+    assert list(weekly.index.strftime('%m-%d')) == ['03-08', '03-15', '03-22', '03-29', '04-05', '04-12']
+    assert weekly.classification['2024-03-15'] == 'standard_monthly_collision'
+    # 2024-03-29 is a closed Friday and the Thursday is the month's last session.
+    assert weekly.classification['2024-03-29'] == 'end_of_month_collision' and not weekly.eligible['2024-03-29']
+    assert weekly.eligible[['2024-03-08', '2024-03-22', '2024-04-05', '2024-04-12']].all()
+    assert list(monthly.expiration.dt.strftime('%m-%d')) == ['03-15']  # 04-19 lies beyond `through`
+    settled = pd.DataFrame([dict(horizon='monthly', nominal_expiration='2024-02-16', expiration='2024-02-16',
+                                 settlement_type='SET_AM', eligible=True, source_url='https://www.cboe.com/')])
+    schedule = contract_observations(merge_contracts(settled, rows), calendar)
+    # The settled February row only anchors March's reference session; it has no predecessor itself.
+    assert set(schedule.listing_basis) == {LISTING_BASIS}
+    assert schedule.loc[schedule.horizon.eq('monthly')].reference_date.iloc[0] == pd.Timestamp('2024-02-16')
+
+
+def test_settled_contracts_take_precedence_over_upcoming_rows(calendar):
+    from spx_forecast.upcoming import merge_contracts, upcoming_contracts
+    last = {'weekly': pd.Timestamp('2024-03-01'), 'monthly': pd.Timestamp('2024-02-16')}
+    upcoming = upcoming_contracts(calendar, _standard(), last, '2024-03-22', 'https://www.sec.gov/rule.pdf')
+    settled = pd.DataFrame([dict(horizon='weekly', nominal_expiration='2024-03-08', expiration='2024-03-08',
+                                 settlement_type='SPXW_PM', eligible=True, source_url='https://www.cboe.com/')])
+    merged = merge_contracts(settled, upcoming)
+    weekly = merged.loc[merged.horizon.eq('weekly')]
+    assert len(weekly) == len(upcoming.loc[upcoming.horizon.eq('weekly')])  # 03-08 appears once
+    assert weekly.loc[pd.to_datetime(weekly.nominal_expiration).eq('2024-03-08')].listing_basis.item() == 'settlement_record'
+
+
+def test_upcoming_contracts_cannot_extend_beyond_verified_calendar(calendar):
+    from spx_forecast.upcoming import upcoming_contracts
+    with pytest.raises(ValueError, match='beyond the verified calendar'):
+        upcoming_contracts(calendar, _standard(), {'weekly': pd.Timestamp('2025-12-05'),
+                           'monthly': pd.Timestamp('2025-11-21')}, '2026-01-30', 'https://www.sec.gov/rule.pdf')

@@ -53,6 +53,13 @@ class OfficialCalendar:
         return valid[-1]
 
 
+def classify_week(actual, standard_dates, month_ends):
+    """Calendar classification of a week's last regular session; only 'end_of_week' is a target."""
+    if actual in standard_dates:
+        return "standard_monthly_collision"
+    return "end_of_month_collision" if actual in month_ends else "end_of_week"
+
+
 def contract_observations(frame, calendar):
     required = {"horizon", "nominal_expiration", "expiration", "settlement_type", "eligible", "source_url"}
     if not required <= set(frame):

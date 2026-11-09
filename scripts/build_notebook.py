@@ -38,7 +38,7 @@ ROOT = Path.cwd() if (Path.cwd() / 'pyproject.toml').exists() else Path.cwd().pa
 sys.path.insert(0, str(ROOT / 'src'))
 from spx_forecast.config import Config
 CONFIG = Config(
-    start='2015-01-01', end='2026-11-06', reference_date='2026-11-06',
+    start='2015-01-01', end='2026-11-06', reference_date=None,  # None = each horizon's next unexpired verified contract
     raw=ROOT / 'data/raw', normalized=ROOT / 'data/normalized',
     imports=ROOT / 'data/imports', output=ROOT / 'artifacts',
     seed=42, refresh=False, run_expensive_backtest=True,
@@ -227,7 +227,7 @@ Promote ML only if its paired final-test interval score is lower **and** its cov
 close to 80% as the frozen benchmark's coverage. Otherwise retain the benchmark. This final-test
 promotion rule makes the selected model's reported holdout performance descriptive, not a new unbiased
 estimate. The issue timestamp below is actual execution time, not a backdated scheduled timestamp.
-Set `reference_date` to an official weekly or monthly reference session; both need not coincide.
+By default (`reference_date=None`) each horizon forecasts its next unexpired verified contract; set a date string to force one official reference session.
 Rerun this cell for one new availability check. It never waits, duplicates, or changes an issued row.
 """)
 code("""forecast_rows, forecast_status = workflow.forecast_once(CONFIG, state)

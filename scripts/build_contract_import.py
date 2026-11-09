@@ -7,7 +7,7 @@ from zipfile import ZipFile
 import pandas as pd
 
 from scripts.build_calendar_import import build_frames, load_sources
-from spx_forecast.calendar import OfficialCalendar, contract_observations
+from spx_forecast.calendar import OfficialCalendar, classify_week, contract_observations
 from spx_forecast.config import Config
 from spx_forecast.ingestion import Store, digest, weekly_archive
 
@@ -38,8 +38,7 @@ def build_contracts(calendar, standard, weekly_labels, as_of, policy):
             raise ValueError('No verified session in a nominal EOW week')
         actual = sessions[-1]
         reference = daily.loc[actual]
-        classification = ('standard_monthly_collision' if actual in standard_dates else
-                          'end_of_month_collision' if actual in month_ends else 'end_of_week')
+        classification = classify_week(actual, standard_dates, month_ends)
         eligible = classification == 'end_of_week'
         if eligible and actual not in labels.index:
             missing.append(str(actual.date()))
