@@ -1,11 +1,12 @@
 dataset,rows,start,end,missing_sessions,duplicate_records,valid_settlements,usable_forecasts
 settlements_archive,1940,2015-01-02,2026-11-06,,0.0,1940,
 settlements_monthly_archive,130,2016-01-15,2026-10-16,,0.0,130,
-spx,2609,2016-11-07,2026-11-05,0,0.0,,
+spx,2610,2016-11-07,2026-11-06,0,0.0,,
 vix,3013,2015-01-02,2026-11-06,0,0.0,,
 vix9d,2980,2015-01-02,2026-11-06,0,0.0,,
 calendar,4018,2016-01-01,2026-12-31,,0.0,,
 contracts,695,2016-01-15,2026-11-06,,0.0,,
+upcoming_contracts,9,2026-11-13,2026-12-24,,0.0,,
 settlements,2070,2015-01-02,2026-11-06,,0.0,2070,
-weekly observations,344,,,,,,344
-monthly observations,118,,,,,,118
+weekly observations,345,,,,,,344
+monthly observations,119,,,,,,118

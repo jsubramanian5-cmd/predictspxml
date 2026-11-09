@@ -1,2 +1,3 @@
 dataset,status,reason
+spx_reference,ok,1 SPX close(s) after FRED's last observation come from Cboe SPX_History.csv
 monthly_archive,pending,12 month-only SET values lack verified dates or usable values

@@ -1,4 +1,7 @@
 {
+  "calendar_end": "2026-12-31",
+  "runway_days": 52,
+  "warning": "Verified calendar ends 2026-12-31 (52 days left, warning below 60): import the 2027 Cboe annual calendar or forecasts stop after that date",
   "as_of": "2026-11-09",
   "through": "2026-12-31",
   "rows": 9,

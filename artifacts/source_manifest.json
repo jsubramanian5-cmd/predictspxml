@@ -512,14 +512,30 @@
     "official_urls":null
   },
   {
+    "dataset":"spx_cboe",
+    "source_url":"https:\/\/cdn-api.cboe.com\/api\/global\/us_indices\/daily_prices\/SPX_History.csv",
+    "sha256":"ddb30f55deb9d4029af87778fbf2fa843e3c8ed2e57c617097fa0fd3a8aa668d",
+    "snapshot":"spx_cboe-ddb30f55deb9d4029af87778fbf2fa843e3c8ed2e57c617097fa0fd3a8aa668d.raw",
+    "import_path":"data\/imports\/SPX_History.csv",
+    "source_method":"user_supplied_download",
+    "provenance":"User-supplied file attributed to official download URL",
+    "retrieved_at":"2026-11-09T02:21:18.829802+00:00",
+    "published_at":null,
+    "archive_sha256":null,
+    "archive_member":null,
+    "resolved_url":null,
+    "http_last_modified":null,
+    "official_urls":null
+  },
+  {
     "dataset":"calendar_import",
-    "source_url":"C:\/Dev\/predictspxml\/data\/imports\/calendar.csv",
+    "source_url":"data\/imports\/calendar.csv",
     "sha256":"10d0e1fde0c768a9565788aa89b90060df8596f7b1ebd5ac37fe29dbd5ab258b",
     "snapshot":"calendar_import-10d0e1fde0c768a9565788aa89b90060df8596f7b1ebd5ac37fe29dbd5ab258b.raw",
     "import_path":null,
     "source_method":null,
     "provenance":null,
-    "retrieved_at":"2026-11-09T00:45:53.199389+00:00",
+    "retrieved_at":"2026-11-09T02:21:18.875775+00:00",
     "published_at":null,
     "archive_sha256":null,
     "archive_member":null,
@@ -543,13 +559,13 @@
   },
   {
     "dataset":"contracts_import",
-    "source_url":"C:\/Dev\/predictspxml\/data\/imports\/contracts.csv",
+    "source_url":"data\/imports\/contracts.csv",
     "sha256":"f2555679c31f95f773cfecb403517ae2f34a26211c27297c96ef96b877245a89",
     "snapshot":"contracts_import-f2555679c31f95f773cfecb403517ae2f34a26211c27297c96ef96b877245a89.raw",
     "import_path":null,
     "source_method":null,
     "provenance":null,
-    "retrieved_at":"2026-11-09T00:45:53.205419+00:00",
+    "retrieved_at":"2026-11-09T02:21:18.882426+00:00",
     "published_at":null,
     "archive_sha256":null,
     "archive_member":null,
@@ -578,6 +594,24 @@
       "https:\/\/www.cboe.com\/index_settlement_values\/get_sv_data\/W\/2024\/",
       "https:\/\/www.cboe.com\/index_settlement_values\/get_sv_data\/W\/2025\/",
       "https:\/\/www.cboe.com\/index_settlement_values\/get_sv_data\/W\/2026\/"
+    ]
+  },
+  {
+    "dataset":"upcoming_contracts_import",
+    "source_url":"data\/imports\/upcoming_contracts.csv",
+    "sha256":"7e4026cea99aecc53108818b25bb345d00a3ca6485247aaaea8c1020cd45eb88",
+    "snapshot":"upcoming_contracts_import-7e4026cea99aecc53108818b25bb345d00a3ca6485247aaaea8c1020cd45eb88.raw",
+    "import_path":null,
+    "source_method":null,
+    "provenance":null,
+    "retrieved_at":"2026-11-09T02:21:18.884429+00:00",
+    "published_at":null,
+    "archive_sha256":null,
+    "archive_member":null,
+    "resolved_url":null,
+    "http_last_modified":null,
+    "official_urls":[
+      "https:\/\/cdn.cboe.com\/resources\/options\/Cboe2026OPTIONSCalendar.pdf"
     ]
   }
 ]

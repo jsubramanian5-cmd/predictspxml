@@ -1,1 +1,2 @@
 horizon,reference_date,actual_issue_time,expiration,settlement_type,reference_close,lower,median,upper,model_version,timing_status
+weekly,2026-11-06,2026-11-09T02:21:21.024932+00:00,2026-11-13,SPXW_PM,7376.86,7097.779459313838,7445.904965518392,7684.361948694638,0.1.0+2f38a9f21ed1,receipt_verified_publication_unknown
