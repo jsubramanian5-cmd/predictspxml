@@ -4,6 +4,7 @@
 *.toml text eol=lf
 *.lock text eol=lf
 *.ipynb text eol=lf
+*.json text eol=lf
 
 # These inputs/snapshots are content-hashed. Never normalize their bytes.
 data/imports/** -text

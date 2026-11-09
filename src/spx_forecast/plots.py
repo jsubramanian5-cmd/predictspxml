@@ -143,3 +143,57 @@ def widths(predictions):
                 ax.plot(group.expiration, group.upper - group.lower, label=label(model), lw=1)
             ax.legend(fontsize=9)
     return fig
+
+
+def yearly_actual_vs_prediction(predictions, frozen, horizon, years, extension_years=()):
+    """One panel per calendar year: actual settlements against frozen benchmark and ML medians."""
+    fig, axes = plt.subplots(len(years), 1, figsize=(12, 3.8 * len(years)), constrained_layout=True)
+    axes = np.atleast_1d(axes)
+    data = predictions.loc[predictions.horizon.eq(horizon)] if len(predictions) and horizon in frozen else pd.DataFrame()
+    for ax, year in zip(axes, years):
+        year_data = data.loc[data.expiration.dt.year.eq(year)] if len(data) else data
+        note = ' (post-holdout extension, frozen models)' if year in extension_years else ''
+        ax.set_ylabel('SPX index points')
+        if year_data.empty:
+            ax.set_title(f'{horizon.title()} {year}: actual vs predicted settlement{note}')
+            pending(ax, 'Pending: no scored expirations')
+            continue
+        actual = year_data.drop_duplicates('expiration').sort_values('expiration')
+        ax.set_title(f'{horizon.title()} {year}: actual vs predicted settlement{note}; n={len(actual)}')
+        ax.plot(actual.expiration, actual.actual_level, color='#222222', marker='o', ms=3, lw=1.5,
+                label='Actual settlement', zorder=3)
+        for kind, color, linestyle in [('benchmark', BLUE, '--'), ('ml', ORANGE, ':')]:
+            selected = year_data.loc[year_data.model.eq(model_key(frozen[horizon][kind]))].sort_values('expiration')
+            if not selected.empty:
+                name = 'Benchmark' if kind == 'benchmark' else 'ML'
+                ax.plot(selected.expiration, selected['median'], color=color, linestyle=linestyle,
+                        lw=1.5, label=f'{name} median: {label(selected.model.iat[0])}')
+        ax.legend(loc='upper left', fontsize=9)
+    fig.suptitle(f'{horizon.title()} out-of-sample actual vs prediction by year', fontsize=14)
+    return fig
+
+
+def interactive_outcomes(predictions, horizon, model=None):
+    """Plotly version of `outcomes`: hovering a date shows the 10th/90th percentile levels, median and actual."""
+    import plotly.graph_objects as go
+    data = predictions.loc[predictions.horizon.eq(horizon)] if len(predictions) and "horizon" in predictions else pd.DataFrame()
+    if model and len(data):
+        data = data.loc[data.model.eq(model)]
+    fig = go.Figure(layout=dict(title=f"{horizon.title()} official settlements and 80% forecast intervals",
+                                xaxis_title="Expiration date", yaxis_title="SPX index points",
+                                hovermode="x unified", template="simple_white"))
+    if data.empty:
+        fig.add_annotation(text="Pending: verified history / completed backtest required", showarrow=False,
+                           xref="paper", yref="paper", x=0.5, y=0.5)
+        return fig
+    data = data.sort_values("expiration")
+    fig.add_trace(go.Scatter(x=data.expiration, y=data.lower, name="10th percentile", mode="lines",
+                             line=dict(width=0), hovertemplate="%{y:,.2f}"))
+    fig.add_trace(go.Scatter(x=data.expiration, y=data.upper, name="90th percentile", mode="lines",
+                             line=dict(width=0), fill="tonexty", fillcolor="rgba(40,100,160,0.2)",
+                             hovertemplate="%{y:,.2f}"))
+    fig.add_trace(go.Scatter(x=data.expiration, y=data["median"], name="Median forecast", mode="lines",
+                             line=dict(color=BLUE, width=1), hovertemplate="%{y:,.2f}"))
+    fig.add_trace(go.Scatter(x=data.expiration, y=data.actual_level, name="Official settlement", mode="markers",
+                             marker=dict(color=ORANGE, size=6), hovertemplate="%{y:,.2f}"))
+    return fig

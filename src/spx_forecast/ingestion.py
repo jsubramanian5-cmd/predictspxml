@@ -44,6 +44,15 @@ def digest(data):
     return hashlib.sha256(data).hexdigest()
 
 
+def portable_path(path):
+    """Record repo-relative POSIX paths so manifests do not depend on the checkout location."""
+    path = Path(path)
+    try:
+        return path.resolve().relative_to(Path.cwd().resolve()).as_posix()
+    except ValueError:
+        return path.as_posix()
+
+
 class Store:
     def __init__(self, config):
         self.config = config
@@ -93,7 +102,7 @@ class Store:
             meta = json.loads(receipt.read_text())
         else:
             meta = dict(dataset=name, source_url=URLS[name], sha256=sha,
-                        snapshot=snapshot, import_path=str(path),
+                        snapshot=snapshot, import_path=portable_path(path),
                         source_method="user_supplied_download",
                         provenance="User-supplied file attributed to official download URL",
                         retrieved_at=datetime.now(timezone.utc).isoformat(), published_at=None)
@@ -110,7 +119,7 @@ class Store:
         if "source_url" not in frame or not frame.source_url.map(official_url).all():
             raise ValueError(f"{name}: each imported row needs an official source_url")
         retrieved = datetime.now(timezone.utc).isoformat()
-        self.manifest.append(dict(dataset=name, source_url=str(path),
+        self.manifest.append(dict(dataset=name, source_url=portable_path(path),
                                   official_urls=sorted(frame.source_url.unique()),
                                   retrieved_at=retrieved,
                                   published_at=None, sha256=sha, snapshot=snapshot))

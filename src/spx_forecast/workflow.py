@@ -4,7 +4,7 @@ import pickle
 
 import pandas as pd
 
-from .backtest import develop, history_plan, holdout, metrics, model_key, promote, training_rows
+from .backtest import develop, expanding, history_plan, holdout, metrics, model_key, promote, training_rows
 from .calendar import OfficialCalendar, contract_observations, availability
 from .features import FEATURES, build_observations, input_times, price_features
 from .forecast import FORECAST_COLUMNS, dependency_versions, publish_forecast
@@ -95,6 +95,40 @@ def final_test(config, state, progress=None):
         state["final"][horizon] = prediction
         state["selected"][horizon] = promote(prediction, frozen)
         state["statuses"][horizon] = "evaluated; selected " + model_key(state["selected"][horizon])
+
+
+def post_holdout_predictions(config, state, year):
+    """Score a year after the frozen test window with the frozen finalists, refit before each forecast."""
+    frames = []
+    for horizon, frozen in state["frozen"].items():
+        observations = state["observations"][horizon]
+        scorable = observations.loc[observations.expiration.dt.year.eq(year) & observations.target.notna()
+                                    & observations.issue_time.notna()]
+        if scorable.empty:
+            continue
+        frames.append(expanding(observations, scorable, [frozen["benchmark"], frozen["ml"]],
+                                frozen["volatility_threshold"], config.seed, "post_holdout"))
+    return pd.concat(frames, ignore_index=True) if frames else pd.DataFrame()
+
+
+def forecast_range_table(predictions, selected, years):
+    """10th/50th/90th percentile settlement levels of each horizon's selected model, with actuals."""
+    rows = []
+    for horizon, config in selected.items():
+        frame = predictions.loc[predictions.horizon.eq(horizon) & predictions.model.eq(model_key(config))
+                                & pd.to_datetime(predictions.expiration).dt.year.isin(years)]
+        rows.append(frame)
+    if not rows:
+        return pd.DataFrame()
+    table = pd.concat(rows, ignore_index=True)
+    table = table.assign(expiration=pd.to_datetime(table.expiration).dt.date,
+                         reference_date=pd.to_datetime(table.reference_date, format='mixed').dt.date,
+                         within_80=table.actual_level.between(table.lower, table.upper))
+    table = table.rename(columns={"lower": "p10_level", "median": "median_level", "upper": "p90_level"})
+    columns = ["horizon", "reference_date", "expiration", "reference_close", "p10_level", "median_level",
+               "p90_level", "actual_level", "within_80"]
+    table = table.sort_values(["horizon", "expiration"], ascending=[False, True])[columns]
+    return table.round({c: 2 for c in ("reference_close", "p10_level", "median_level", "p90_level", "actual_level")}).reset_index(drop=True)
 
 
 def predictions(state, stage):

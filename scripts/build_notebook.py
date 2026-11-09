@@ -96,6 +96,8 @@ code("""state = workflow.prepare(CONFIG)
 display(state['issues'])
 display(state['audit'])
 display(pd.DataFrame(state['plans']).T)
+""")
+code("""# Data coverage chart
 figure = plots.coverage(state['datasets'], state['calendar'])
 figure.savefig(CONFIG.output / 'data_coverage.png', bbox_inches='tight')
 plt.show()
@@ -164,6 +166,8 @@ development_metrics = metrics(development_predictions)
 show_run_results(development_predictions, 'Completed training/development runs')
 display(pd.Series(state['statuses'], name='horizon_status').to_frame())
 display(pd.DataFrame(state['frozen']).T)
+""")
+code("""# Development actual vs predicted settlement chart
 figure = plots.actual_vs_prediction(development_predictions, state['frozen'], 'development')
 figure.savefig(CONFIG.output / 'development_actual_vs_prediction.png', bbox_inches='tight')
 plt.show()
@@ -178,12 +182,45 @@ workflow.final_test(CONFIG, state, progress=show_run_progress)
 final_predictions = workflow.predictions(state, 'final')
 final_metrics = metrics(final_predictions)
 show_run_results(final_predictions, 'Completed final test runs')
+""")
+code("""# Final-test actual vs predicted settlement chart
 figure = plots.actual_vs_prediction(final_predictions, state['frozen'], 'final_test')
 figure.savefig(CONFIG.output / 'final_test_actual_vs_prediction.png', bbox_inches='tight')
 plt.show()
+""")
+code("""# Final model comparison chart
 figure = plots.comparisons(final_metrics)
 figure.savefig(CONFIG.output / 'final_model_comparisons.png', bbox_inches='tight')
 plt.show()
+""")
+md("""### Actual vs predicted by year: 2024, 2025 and 2026
+Weekly and monthly charts with one panel per year. 2024-2025 are the final-test predictions above.
+2026 lies after the frozen test window, so it is a **post-holdout extension**: the same frozen finalists
+are refit before each forecast using only labels available at that issue time. It never tunes anything.
+""")
+code("""YEAR_PANELS, EXTENSION_YEAR = (2024, 2025, 2026), 2026
+extension_predictions = workflow.post_holdout_predictions(CONFIG, state, EXTENSION_YEAR)
+yearly_predictions = pd.concat([final_predictions, extension_predictions], ignore_index=True)
+""")
+code("""# Weekly actual vs predicted settlement, 2024-2026
+figure = plots.yearly_actual_vs_prediction(yearly_predictions, state['frozen'], 'weekly',
+                                           YEAR_PANELS, (EXTENSION_YEAR,))
+figure.savefig(CONFIG.output / 'weekly_actual_vs_prediction_by_year.png', bbox_inches='tight', dpi=130)
+plt.show()
+""")
+code("""# Monthly actual vs predicted settlement, 2024-2026
+figure = plots.yearly_actual_vs_prediction(yearly_predictions, state['frozen'], 'monthly',
+                                           YEAR_PANELS, (EXTENSION_YEAR,))
+figure.savefig(CONFIG.output / 'monthly_actual_vs_prediction_by_year.png', bbox_inches='tight', dpi=130)
+plt.show()
+""")
+md("""### Forecast ranges table: 2025 and 2026
+The selected model's 10th percentile, median and 90th percentile settlement levels for every scored weekly and monthly expiration, next to the official settlement. `within_80` marks settlements inside the 10th–90th range. 2026 rows are the post-holdout extension. Saved to `artifacts/forecast_ranges_2025_2026.csv`.
+""")
+code("""# Selected-model 10th / median / 90th percentile settlement levels, 2025 and 2026
+selected_range_table = workflow.forecast_range_table(yearly_predictions, state['selected'], (2025, 2026))
+selected_range_table.to_csv(CONFIG.output / 'forecast_ranges_2025_2026.csv', index=False)
+display(selected_range_table)
 """)
 md("""## 8. Model selection and forecast generation
 Promote ML only if its paired final-test interval score is lower **and** its coverage is at least as
@@ -201,12 +238,22 @@ display(pd.DataFrame(state['selected']).T)
 md("## 9. Results, limitations, and artifact exports")
 code("""backtest_predictions, all_metrics = workflow.export(CONFIG, state)
 display(all_metrics)
-for horizon in ('weekly', 'monthly'):
-    selected_key = model_key(state['selected'][horizon]) if horizon in state['selected'] else None
-    figure = plots.outcomes(final_predictions, horizon, selected_key)
-    figure.savefig(CONFIG.output / f'{horizon}_settlement_intervals.png', bbox_inches='tight')
-    plt.show()
-figure = plots.widths(final_predictions)
+""")
+code("""# Weekly 80% settlement interval chart (hover a date to see the 10th/90th percentile levels)
+selected_key = model_key(state['selected']['weekly']) if 'weekly' in state['selected'] else None
+figure = plots.outcomes(final_predictions, 'weekly', selected_key)
+figure.savefig(CONFIG.output / 'weekly_settlement_intervals.png', bbox_inches='tight')
+plt.close(figure)
+plots.interactive_outcomes(final_predictions, 'weekly', selected_key)
+""")
+code("""# Monthly 80% settlement interval chart (hover a date to see the 10th/90th percentile levels)
+selected_key = model_key(state['selected']['monthly']) if 'monthly' in state['selected'] else None
+figure = plots.outcomes(final_predictions, 'monthly', selected_key)
+figure.savefig(CONFIG.output / 'monthly_settlement_intervals.png', bbox_inches='tight')
+plt.close(figure)
+plots.interactive_outcomes(final_predictions, 'monthly', selected_key)
+""")
+code("""# Interval width chart
 figure.savefig(CONFIG.output / 'interval_widths.png', bbox_inches='tight')
 plt.show()
 """)
