@@ -12,11 +12,14 @@ import pandas as pd
 import requests
 
 from .ingestion import URLS, official_url
+from .reference import CBOE_SPX_URL
 
 SPECS = {
     "spx": dict(file="SP500.csv", date="observation_date", value="SP500", format=None),
     "vix": dict(file="VIX_History.csv", date="DATE", value="CLOSE", format="%m/%d/%Y"),
     "vix9d": dict(file="VIX9D_History.csv", date="DATE", value="CLOSE", format="%m/%d/%Y"),
+    # Live-only reference close: available the evening it prints, unlike FRED (see reference.py).
+    "spx_cboe": dict(file="SPX_History.csv", date="DATE", value="SPX", format="%m/%d/%Y", url=CBOE_SPX_URL),
 }
 
 
@@ -62,16 +65,24 @@ def refresh_prices(imports, session=None, timeout=15):
     for name, spec in SPECS.items():
         path = Path(imports) / spec["file"]
         try:
-            url = URLS[name]
+            url = spec.get("url") or URLS[name]
             if not official_url(url):
                 raise ValueError("Only FRED and Cboe market sources are permitted")
             response = session.get(url, timeout=timeout)
             response.raise_for_status()
             if not official_url(response.url):
                 raise ValueError("Redirect left permitted source hosts")
-            existing = path.read_bytes().decode("utf-8")
-            text, report = merge_history(existing, response.content.decode("utf-8"),
-                                         spec["date"], spec["value"], spec["format"])
+            downloaded = response.content.decode("utf-8")
+            if path.exists():
+                text, report = merge_history(path.read_bytes().decode("utf-8"), downloaded,
+                                             spec["date"], spec["value"], spec["format"])
+            else:  # first download: validate the shape, then keep the file as supplied
+                frame = _read(downloaded)
+                pd.to_datetime(frame[spec["date"]], format=spec["format"])
+                text = "\n".join(downloaded.splitlines()) + "\n"
+                report = dict(appended_rows=len(frame), overlapping_mismatches=0,
+                              last_date=str(pd.to_datetime(frame[spec["date"]], format=spec["format"]).max().date()),
+                              previous_last_date=None)
             if report["appended_rows"]:
                 temporary = path.with_suffix(".tmp")
                 temporary.write_bytes(text.encode("utf-8"))

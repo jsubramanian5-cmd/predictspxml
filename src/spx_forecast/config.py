@@ -13,6 +13,8 @@ class Config:
     imports: Path = Path("data/imports")
     output: Path = Path("artifacts")
     seed: int = 42
+    # Live runs only: fill SPX dates after FRED's last observation from Cboe SPX_History.csv (see reference.py).
+    live_cboe_spx: bool = False
     refresh: bool = False
     run_expensive_backtest: bool = True
     timeout_seconds: int = 15

@@ -14,6 +14,8 @@ from lxml import html
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
+from .reference import CBOE_SOURCE, CBOE_SPX_URL, RECONCILIATION_COLUMNS, reconcile, splice_cboe_tail
+
 URLS = {
     "spx": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=SP500",
     "vix": "https://cdn-api.cboe.com/api/global/us_indices/daily_prices/VIX_History.csv",
@@ -91,7 +93,7 @@ class Store:
         self.manifest.append(meta)
         return data, meta
 
-    def downloaded_prices(self, name, path):
+    def downloaded_prices(self, name, path, url=None):
         """Snapshot a user-supplied download; receipt is not publication time."""
         data = path.read_bytes()
         sha = digest(data)
@@ -101,7 +103,7 @@ class Store:
         if receipt.exists():
             meta = json.loads(receipt.read_text())
         else:
-            meta = dict(dataset=name, source_url=URLS[name], sha256=sha,
+            meta = dict(dataset=name, source_url=url or URLS[name], sha256=sha,
                         snapshot=snapshot, import_path=portable_path(path),
                         source_method="user_supplied_download",
                         provenance="User-supplied file attributed to official download URL",
@@ -413,6 +415,18 @@ def collect(config):
                 store.manifest.append(dict(dataset=name, source_url=url, status="failed",
                                            attempted_at=datetime.now(timezone.utc).isoformat(),
                                            error=str(exc)[:260], sha256=None))
+    cboe_path = config.imports / "SPX_History.csv"
+    reconciliation = pd.DataFrame(columns=RECONCILIATION_COLUMNS)
+    if config.live_cboe_spx and "spx" in datasets and cboe_path.exists():
+        cboe_data, cboe_meta = store.downloaded_prices("spx_cboe", cboe_path, url=CBOE_SPX_URL)
+        cboe = prices(cboe_data, cboe_meta, "spx")
+        cboe = cboe.loc[cboe.date.between(pd.Timestamp(config.start), pd.Timestamp(config.end))].reset_index(drop=True)
+        reconciliation = reconcile(datasets["spx"], cboe)
+        datasets["spx"] = splice_cboe_tail(datasets["spx"], cboe)
+        added = int(datasets["spx"].source.eq(CBOE_SOURCE).sum())
+        issues.append({"dataset": "spx_reference", "status": "ok",
+                       "reason": f"{added} SPX close(s) after FRED's last observation come from Cboe SPX_History.csv"})
+    reconciliation.to_csv(config.output / "spx_reconciliation.csv", index=False)
     for name in ("calendar", "contracts", "upcoming_contracts", "settlements", "publications"):
         path = config.imports / f"{name}.csv"
         if path.exists():

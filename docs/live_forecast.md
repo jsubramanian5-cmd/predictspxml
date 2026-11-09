@@ -10,13 +10,14 @@ python -m scripts.run_live_forecast --skip-refresh --now 2026-11-09T00:46:00Z   
 
 ## Order (each step depends on the one before)
 
-1. **Refresh prices.** FRED SP500 and Cboe VIX/VIX9D are downloaded and *merged* into
-   `data/imports/`. Existing rows are never rewritten (FRED serves only ~10 years); overlapping values
+1. **Refresh prices.** FRED SP500, Cboe VIX/VIX9D and Cboe `SPX_History.csv` are downloaded and *merged*
+   into `data/imports/`. Existing rows are never rewritten (FRED serves only ~10 years); overlapping values
    that differ are counted and reported.
 2. **Rebuild upcoming contracts** (`upcoming_contracts.csv`) from the pinned calendar, as of today.
    It depends on `contracts.csv`, so refresh that first whenever a new settlement archive is imported
    (`python -m scripts.build_contract_import`).
-3. **Load** all imports (`workflow.prepare` with `end` = today).
+3. **Load** all imports (`workflow.prepare` with `end` = today, `live_cboe_spx=True`). The SPX series is FRED
+   plus Cboe closes for dates **after FRED's last observation** (see "Reference close source").
 4. **Forecast once** with the models selected by the last backtest (`artifacts/run_metadata.json`);
    this run never re-tunes or re-selects. Each horizon forecasts its next contract whose 08:00 issue
    cutoff has not passed. Results are appended to `artifacts/forecast_status_history.csv`.
@@ -32,19 +33,35 @@ Steps 1-2 only need to be repeated, not changed, between runs; a rerun never ove
 | 2 | A price refresh failed, overlapping history changed, or the verified calendar ends within 60 days. Forecasts still ran with what was on disk. |
 | 3 | A horizon missed its issue window (`suppressed_*`). Worth an alert. |
 
+## Reference close source
+
+FRED publishes a day's SP500 close about 11:30 New York time the next business day (observed: file updated
+2026-11-06 11:26 ET with the 11-05 close), after the 08:00 issue cutoff, so a FRED-only live run could never
+issue. Live runs therefore fill SPX dates after FRED's last row from Cboe's `SPX_History.csv`, which prints
+the same evening (observed 2026-11-06 ~21:11 ET). FRED stays the source for the backtest and for every date
+it covers; the live setting is `Config.live_cboe_spx` (off by default, on in the runner).
+
+- Each published forecast records `reference_close_source` (`fred` or `cboe_spx_history`) in its model JSON;
+  the `source` column of `data/normalized/spx.parquet` marks each row.
+- When FRED catches up, both series are compared. Differences above 0.005 points are written to
+  `artifacts/spx_reconciliation.csv`; one dated within the last 30 days makes the run exit 2 with
+  `SPX RECONCILIATION:` in the log. A forecast already issued is never revised. Historically 2,504 of 2,513
+  shared days match exactly and 9 differ (largest 7.89 points, 2019-02-28).
+
 ## Scheduling
 
-Inputs are end-of-day values, so **one run per weekday morning is enough**. The issue window runs from
-20:00 New York on the reference session to 08:00 on the next session. Run once at about 07:30 New York
-time, Monday to Friday: that is the last point at which the day's closes can be in, and it leaves 30
-minutes before the cutoff. A Friday reference session is therefore issued on Monday morning. Reruns never
-overwrite an issued forecast, so a second run (for example 20:30 the evening before) is optional.
+An input counts as available when this pipeline *first sees* it, so run after the sources print. Cboe
+posts the day's closes by about 21:15 New York time; the issue window runs from 20:00 on the reference
+session to 08:00 on the next session. Run **twice per weekday**: once at about 22:30 New York time (the
+normal issue) and once at 07:30 as a fallback if the evening run was missed. Reruns never overwrite an issued
+forecast, so the second run is harmless. A Friday reference session is issued Friday evening or Monday morning.
 
-Windows Task Scheduler example (not registered by this repo; the trigger uses the machine's local
-time zone, so convert 07:30 New York if the machine is elsewhere):
+Windows Task Scheduler example (not registered by this repo; triggers use the machine's local time zone,
+so convert 22:30 and 07:30 New York if the machine is elsewhere):
 
 ```powershell
-schtasks /Create /SC WEEKLY /D MON,TUE,WED,THU,FRI /ST 07:30 /TN "spx-live-forecast" /TR "cmd /c cd /d C:\Dev\predictspxml && set PYTHONPATH=src && <path-to>\python.exe -m scripts.run_live_forecast"
+schtasks /Create /SC WEEKLY /D MON,TUE,WED,THU,FRI /ST 22:30 /TN "spx-live-forecast-evening" /TR "cmd /c cd /d C:\Dev\predictspxml && set PYTHONPATH=src && <path-to>\python.exe -m scripts.run_live_forecast"
+schtasks /Create /SC WEEKLY /D MON,TUE,WED,THU,FRI /ST 07:30 /TN "spx-live-forecast-morning" /TR "cmd /c cd /d C:\Dev\predictspxml && set PYTHONPATH=src && <path-to>\python.exe -m scripts.run_live_forecast"
 ```
 
 ## Known limits
@@ -52,8 +69,6 @@ schtasks /Create /SC WEEKLY /D MON,TUE,WED,THU,FRI /ST 07:30 /TN "spx-live-forec
 - The pinned calendar ends 2026-12-31. The run warns (exit 2, `CALENDAR:` in the log and `calendar_runway_days` in
   `artifacts/upcoming_contracts_validation.json`) when fewer than 60 days remain, and fails (exit 1) once it has ended.
   Import and review the next annual calendar before then.
-- FRED's SP500 publication lag is unverified. On the evening of 2026-11-08 FRED still had no value for
-  the 2026-11-06 close, so a Friday reference may not be available by Monday 08:00 and would then be
-  suppressed. Until the value arrives the status names the missing series; it is not substituted with
-  Cboe settlement values.
+- The live reference close can come from Cboe, a different series from FRED's. They agree on all but ~0.4%
+  of days, but a forecast issued from a Cboe close is not strictly the same input the backtest used.
 - Upcoming-contract eligibility is calendar-derived and tagged `calendar_derived_unverified`.

@@ -73,3 +73,55 @@ def test_any_warning_such_as_calendar_runway_gives_warning_exit_code():
     assert exit_code(waiting, warnings=['Verified calendar ends 2026-12-31']) == WARNING
     assert exit_code(waiting, warnings=[]) == OK
     assert exit_code(_statuses('suppressed_late_inputs', 'suppressed_late_inputs'), warnings=['x']) == SUPPRESSED
+
+
+def _prices(rows, source_url='https://fred.stlouisfed.org/'):
+    frame = pd.DataFrame(rows, columns=['date', 'value'])
+    frame['date'] = pd.to_datetime(frame.date)
+    return frame.assign(published_at=pd.NaT, source_url=source_url, retrieved_at='2026-11-06T22:00:00Z', sha256='t')
+
+
+def test_cboe_fills_only_dates_after_fred_and_never_overrides_fred():
+    from spx_forecast.reference import CBOE_SOURCE, FRED_SOURCE, splice_cboe_tail
+    fred = _prices([('2026-11-04', 7688.62), ('2026-11-05', 7353.73)])
+    cboe = _prices([('2026-11-04', 9999.0), ('2026-11-05', 9999.0), ('2026-11-06', 7376.86)])
+    result = splice_cboe_tail(fred, cboe)
+    assert list(result.date.dt.strftime('%m-%d')) == ['11-04', '11-05', '11-06']
+    assert list(result.value) == [7688.62, 7353.73, 7376.86]
+    assert list(result.source) == [FRED_SOURCE, FRED_SOURCE, CBOE_SOURCE]
+    assert not result.date.duplicated().any()
+
+
+def test_reconcile_reports_differences_beyond_tolerance_and_warns_only_when_recent():
+    from spx_forecast.reference import reconcile, recent_mismatch_warning
+    fred = _prices([('2019-02-28', 2784.49), ('2026-11-04', 7688.62), ('2026-11-05', 7353.73)])
+    cboe = _prices([('2019-02-28', 2792.38), ('2026-11-04', 7688.6200), ('2026-11-05', 7353.80)])
+    recon = reconcile(fred, cboe)
+    assert list(recon.date.dt.strftime('%Y-%m-%d')) == ['2019-02-28', '2026-11-05']
+    assert recon.difference.round(2).tolist() == [-7.89, -0.07]
+    now = pd.Timestamp('2026-11-09T00:46:00Z')
+    assert 'largest -0.07 points on 2026-11-05' in recent_mismatch_warning(recon, now)
+    assert recent_mismatch_warning(recon.iloc[:1], now) is None  # old history differences are known, not new news
+    assert recent_mismatch_warning(recon.iloc[:0], now) is None
+
+
+def test_first_cboe_download_is_kept_as_supplied_then_merged_later(tmp_path):
+    from spx_forecast.refresh import refresh_prices
+
+    class Response:
+        def __init__(self, text): self.content, self.url = text.encode(), 'https://cdn-api.cboe.com/x.csv'
+        def raise_for_status(self): pass
+
+    class Session:
+        headers = {}
+        def __init__(self, text): self.text = text
+        def get(self, url, timeout=None): return Response(self.text)
+
+    first = "DATE,SPX\r\n11/05/2026,7353.730000\r\n11/06/2026,7376.860000\r\n"
+    # Only the Cboe SPX series is requested here: stub the other two as failed fetches.
+    results = refresh_prices(tmp_path, Session(first))
+    assert results['spx_cboe']['status'] == 'ok' and results['spx_cboe']['appended_rows'] == 2
+    assert (tmp_path / 'SPX_History.csv').read_text() == "DATE,SPX\n11/05/2026,7353.730000\n11/06/2026,7376.860000\n"
+    later = first + "11/09/2026,7400.000000\r\n"
+    again = refresh_prices(tmp_path, Session(later))
+    assert again['spx_cboe']['appended_rows'] == 1 and again['spx_cboe']['previous_last_date'] == '2026-11-06'

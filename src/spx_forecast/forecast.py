@@ -48,7 +48,8 @@ def publish_forecast(horizon, observations, selected, config, datasets, calendar
                     seed=config.seed, dependency_versions=dependency_versions(),
                     issue_time=pd.Timestamp(now), reference_date=desired,
                     quantile_crossed=bool(crossing[0]), input_ready_at=ready,
-                    contract_basis=str(row.get('listing_basis', 'settlement_record')))
+                    contract_basis=str(row.get('listing_basis', 'settlement_record')),
+                    reference_close_source=reference_source(datasets, row.reference_date))
     encoded = json.dumps(metadata, sort_keys=True, default=str)
     version = __version__ + "+" + hashlib.sha256(encoded.encode()).hexdigest()[:12]
     model_dir = config.output / "models"
@@ -65,6 +66,15 @@ def publish_forecast(horizon, observations, selected, config, datasets, calendar
     result.to_csv(temporary, index=False)
     temporary.replace(path)
     return record, "published"
+
+
+def reference_source(datasets, reference_date):
+    """Which SPX series supplied the reference close ('fred' or 'cboe_spx_history')."""
+    spx = datasets.get("spx")
+    if spx is None or "source" not in spx:
+        return "fred"
+    match = spx.loc[spx.date.eq(pd.Timestamp(reference_date)), "source"]
+    return str(match.iloc[0]) if len(match) else "unknown"
 
 
 def dependency_versions():
