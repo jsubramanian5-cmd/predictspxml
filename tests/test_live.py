@@ -125,3 +125,28 @@ def test_first_cboe_download_is_kept_as_supplied_then_merged_later(tmp_path):
     later = first + "11/09/2026,7400.000000\r\n"
     again = refresh_prices(tmp_path, Session(later))
     assert again['spx_cboe']['appended_rows'] == 1 and again['spx_cboe']['previous_last_date'] == '2026-11-06'
+
+
+def _forecasts(rows):
+    return pd.DataFrame(rows, columns=['horizon', 'reference_date', 'actual_issue_time', 'expiration',
+                                       'settlement_type', 'reference_close', 'lower', 'median', 'upper',
+                                       'model_version', 'timing_status'])
+
+
+def test_daily_table_lists_active_forecasts_and_explains_missing_ones(tmp_path):
+    from spx_forecast.live import DAILY_COLUMNS, daily_forecast_table, write_daily_forecast
+    forecasts = _forecasts([
+        ('weekly', '2026-11-06', '2026-11-09T01:52:20+00:00', '2026-11-13', 'SPXW_PM', 7376.86, 7097.7794, 7445.9049, 7684.3619, 'v1', 'x'),
+        ('weekly', '2026-10-30', '2026-11-03T01:00:00+00:00', '2026-11-06', 'SPXW_PM', 7353.73, 7000.0, 7300.0, 7600.0, 'v0', 'x')])
+    statuses = pd.DataFrame([dict(horizon='monthly', status='pending: not yet eligible')])
+    table = daily_forecast_table(forecasts, statuses, '2026-11-09')
+    assert list(table.columns) == DAILY_COLUMNS
+    weekly, monthly = table.iloc[0], table.iloc[1]
+    assert len(table) == 2  # the expired 11-06 forecast is not listed
+    assert weekly.forecast_status == 'issued' and weekly.expiration == '2026-11-13'
+    assert (weekly.p10_level, weekly.median_level, weekly.p90_level) == (7097.78, 7445.9, 7684.36)
+    assert monthly.forecast_status == 'no_forecast' and monthly.note == 'pending: not yet eligible'
+    # New York date, not UTC: 02:30 UTC on 11-10 is still the evening of 11-09 in New York.
+    path, _ = write_daily_forecast(tmp_path, forecasts, statuses, pd.Timestamp('2026-11-10T02:30:00Z'))
+    assert path.name == 'forecast_2026-11-09.csv' and (tmp_path / 'latest_forecast.csv').exists()
+    assert pd.read_csv(path).shape == (2, len(DAILY_COLUMNS))

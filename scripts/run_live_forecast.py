@@ -19,7 +19,7 @@ import pandas as pd
 from scripts.build_upcoming_contracts import build as build_upcoming
 from spx_forecast import workflow
 from spx_forecast.config import Config
-from spx_forecast.live import ERROR, append_history, exit_code, load_selected
+from spx_forecast.live import ERROR, append_history, exit_code, load_selected, write_daily_forecast
 from spx_forecast.reference import recent_mismatch_warning
 from spx_forecast.refresh import refresh_prices
 
@@ -53,8 +53,11 @@ def run(now=None, skip_refresh=False):
         log.warning('SPX RECONCILIATION: %s', mismatch)
     log.info('3/4 data loaded; sources pending: %d', int((state['issues'].status == 'pending').sum()))
     state['selected'] = load_selected(config.output)
-    records, statuses = workflow.forecast_once(config, state, now if now is not None else pd.Timestamp.now(tz='UTC'))
+    issued_at = now if now is not None else pd.Timestamp.now(tz='UTC')
+    records, statuses = workflow.forecast_once(config, state, issued_at)
     append_history(config.output / 'forecast_status_history.csv', statuses)
+    daily_path, daily = write_daily_forecast(config.output, pd.read_csv(config.output / 'forecasts.csv'), statuses, issued_at)
+    log.info('daily forecast CSV: %s (%d row(s), %d issued)', daily_path, len(daily), int(daily.forecast_status.eq('issued').sum()))
     for row in statuses.itertuples():
         log.info('4/4 %s: %s | %s', row.horizon, row.timing_status, row.status)
     return exit_code(statuses, refresh_results, warnings)

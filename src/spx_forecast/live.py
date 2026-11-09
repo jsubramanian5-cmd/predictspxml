@@ -36,3 +36,41 @@ def load_selected(output):
     if not selected:
         raise ValueError("run_metadata.json has no selected model; complete the backtest first")
     return selected
+
+
+DAILY_COLUMNS = ["as_of_date", "horizon", "forecast_status", "note", "reference_date", "expiration",
+                 "settlement_type", "reference_close", "p10_level", "median_level", "p90_level",
+                 "issued_at", "model_version"]
+
+
+def daily_forecast_table(forecasts, statuses, as_of):
+    """Consumer-facing end-of-day table: every issued forecast whose contract has not expired, plus one
+    explanatory row for each horizon that has none (so a missing forecast is never silent)."""
+    as_of = pd.Timestamp(as_of).normalize()
+    rows = []
+    for horizon in ("weekly", "monthly"):
+        mine = forecasts.loc[forecasts.horizon.eq(horizon) & (pd.to_datetime(forecasts.expiration) >= as_of)]
+        for record in mine.sort_values("expiration").itertuples():
+            rows.append(dict(as_of_date=as_of.date(), horizon=horizon, forecast_status="issued", note="",
+                             reference_date=record.reference_date, expiration=record.expiration,
+                             settlement_type=record.settlement_type, reference_close=round(record.reference_close, 2),
+                             p10_level=round(record.lower, 2), median_level=round(record.median, 2),
+                             p90_level=round(record.upper, 2), issued_at=record.actual_issue_time,
+                             model_version=record.model_version))
+        if mine.empty:
+            status = statuses.loc[statuses.horizon.eq(horizon), "status"]
+            rows.append(dict(as_of_date=as_of.date(), horizon=horizon, forecast_status="no_forecast",
+                             note=str(status.iloc[0]) if len(status) else "no status recorded"))
+    return pd.DataFrame(rows, columns=DAILY_COLUMNS)
+
+
+def write_daily_forecast(output, forecasts, statuses, now, timezone="America/New_York"):
+    """Write artifacts/daily/forecast_YYYY-MM-DD.csv (New York date) and artifacts/latest_forecast.csv."""
+    day = pd.Timestamp(now).tz_convert(timezone).normalize().tz_localize(None)
+    table = daily_forecast_table(forecasts, statuses, day)
+    folder = Path(output) / "daily"
+    folder.mkdir(parents=True, exist_ok=True)
+    dated = folder / f"forecast_{day.date()}.csv"
+    table.to_csv(dated, index=False)
+    table.to_csv(Path(output) / "latest_forecast.csv", index=False)
+    return dated, table
