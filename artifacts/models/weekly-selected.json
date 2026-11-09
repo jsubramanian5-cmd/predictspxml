@@ -19,18 +19,18 @@
   "fitted_as_of": "2026-11-07 00:00:00+00:00",
   "training_count": 343,
   "dependency_versions": {
-    "numpy": "2.1.3",
-    "pandas": "2.2.3",
-    "pyarrow": "19.0.0",
-    "scikit-learn": "1.6.1",
-    "xgboost": "3.1.3",
-    "matplotlib": "3.10.0",
-    "jupyterlab": "4.3.4",
+    "numpy": "2.3.5",
+    "pandas": "2.3.3",
+    "pyarrow": "21.0.0",
+    "scikit-learn": "1.7.2",
+    "xgboost": "3.2.0",
+    "matplotlib": "3.10.6",
+    "jupyterlab": "4.4.7",
     "nbformat": "5.10.4",
     "nbclient": "0.10.2",
     "nbconvert": "7.16.6",
-    "requests": "2.32.3",
-    "ipykernel": "6.29.5"
+    "requests": "2.32.5",
+    "ipykernel": "6.31.0"
   },
   "source_hashes": [
     "4922df4b7f2e1270273bd765a2b24dd19337eb3110e4fbac86016f618a684c08",

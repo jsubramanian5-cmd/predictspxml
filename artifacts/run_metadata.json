@@ -16,10 +16,10 @@
     "start": "2015-01-01",
     "end": "2026-11-06",
     "reference_date": "2026-11-06",
-    "raw": "C:\\Dev\\indexoptions\\data\\raw",
-    "normalized": "C:\\Dev\\indexoptions\\data\\normalized",
-    "imports": "C:\\Dev\\indexoptions\\data\\imports",
-    "output": "C:\\Dev\\indexoptions\\artifacts",
+    "raw": "C:\\Dev\\predictspxml\\data\\raw",
+    "normalized": "C:\\Dev\\predictspxml\\data\\normalized",
+    "imports": "C:\\Dev\\predictspxml\\data\\imports",
+    "output": "C:\\Dev\\predictspxml\\artifacts",
     "seed": 42,
     "refresh": false,
     "run_expensive_backtest": true,
@@ -27,18 +27,18 @@
     "retries": 2
   },
   "dependency_versions": {
-    "numpy": "2.1.3",
-    "pandas": "2.2.3",
-    "pyarrow": "19.0.0",
-    "scikit-learn": "1.6.1",
-    "xgboost": "3.1.3",
-    "matplotlib": "3.10.0",
-    "jupyterlab": "4.3.4",
+    "numpy": "2.3.5",
+    "pandas": "2.3.3",
+    "pyarrow": "21.0.0",
+    "scikit-learn": "1.7.2",
+    "xgboost": "3.2.0",
+    "matplotlib": "3.10.6",
+    "jupyterlab": "4.4.7",
     "nbformat": "5.10.4",
     "nbclient": "0.10.2",
     "nbconvert": "7.16.6",
-    "requests": "2.32.3",
-    "ipykernel": "6.29.5"
+    "requests": "2.32.5",
+    "ipykernel": "6.31.0"
   },
   "plans": {
     "weekly": {
@@ -422,7 +422,7 @@
     },
     {
       "dataset": "calendar_import",
-      "source_url": "C:\\Dev\\indexoptions\\data\\imports\\calendar.csv",
+      "source_url": "C:/Dev/predictspxml/data/imports/calendar.csv",
       "official_urls": [
         "http://www.cboe.com/aboutcboe/Cboe2019OPTIONSCalendar-Web-v1.1%20copy.pdf",
         "http://www.cboe.com:80/AboutCBOE/xcal2017.pdf",
@@ -438,14 +438,14 @@
         "https://cdn.cboe.com/resources/schedule_update/2025/Cboe-to-Observe-National-Day-of-Mourning-on-Thursday-January-9-2025.pdf",
         "https://www.cboe.com/aboutcboe/xcal2018.pdf"
       ],
-      "retrieved_at": "2026-11-08T16:16:37.597407+00:00",
+      "retrieved_at": "2026-11-09T00:45:53.199389+00:00",
       "published_at": null,
       "sha256": "10d0e1fde0c768a9565788aa89b90060df8596f7b1ebd5ac37fe29dbd5ab258b",
       "snapshot": "calendar_import-10d0e1fde0c768a9565788aa89b90060df8596f7b1ebd5ac37fe29dbd5ab258b.raw"
     },
     {
       "dataset": "contracts_import",
-      "source_url": "C:\\Dev\\indexoptions\\data\\imports\\contracts.csv",
+      "source_url": "C:/Dev/predictspxml/data/imports/contracts.csv",
       "official_urls": [
         "http://www.cboe.com/aboutcboe/Cboe2019OPTIONSCalendar-Web-v1.1%20copy.pdf",
         "http://www.cboe.com:80/AboutCBOE/xcal2017.pdf",
@@ -470,7 +470,7 @@
         "https://www.cboe.com/index_settlement_values/get_sv_data/W/2025/",
         "https://www.cboe.com/index_settlement_values/get_sv_data/W/2026/"
       ],
-      "retrieved_at": "2026-11-08T16:16:37.618532+00:00",
+      "retrieved_at": "2026-11-09T00:45:53.205419+00:00",
       "published_at": null,
       "sha256": "f2555679c31f95f773cfecb403517ae2f34a26211c27297c96ef96b877245a89",
       "snapshot": "contracts_import-f2555679c31f95f773cfecb403517ae2f34a26211c27297c96ef96b877245a89.raw"
@@ -504,18 +504,18 @@
       "fitted_as_of": "2026-11-07 00:00:00+00:00",
       "training_count": 343,
       "dependency_versions": {
-        "numpy": "2.1.3",
-        "pandas": "2.2.3",
-        "pyarrow": "19.0.0",
-        "scikit-learn": "1.6.1",
-        "xgboost": "3.1.3",
-        "matplotlib": "3.10.0",
-        "jupyterlab": "4.3.4",
+        "numpy": "2.3.5",
+        "pandas": "2.3.3",
+        "pyarrow": "21.0.0",
+        "scikit-learn": "1.7.2",
+        "xgboost": "3.2.0",
+        "matplotlib": "3.10.6",
+        "jupyterlab": "4.4.7",
         "nbformat": "5.10.4",
         "nbclient": "0.10.2",
         "nbconvert": "7.16.6",
-        "requests": "2.32.3",
-        "ipykernel": "6.29.5"
+        "requests": "2.32.5",
+        "ipykernel": "6.31.0"
       },
       "source_hashes": [
         "4922df4b7f2e1270273bd765a2b24dd19337eb3110e4fbac86016f618a684c08",
@@ -575,18 +575,18 @@
       "fitted_as_of": "2026-11-07 00:00:00+00:00",
       "training_count": 118,
       "dependency_versions": {
-        "numpy": "2.1.3",
-        "pandas": "2.2.3",
-        "pyarrow": "19.0.0",
-        "scikit-learn": "1.6.1",
-        "xgboost": "3.1.3",
-        "matplotlib": "3.10.0",
-        "jupyterlab": "4.3.4",
+        "numpy": "2.3.5",
+        "pandas": "2.3.3",
+        "pyarrow": "21.0.0",
+        "scikit-learn": "1.7.2",
+        "xgboost": "3.2.0",
+        "matplotlib": "3.10.6",
+        "jupyterlab": "4.4.7",
         "nbformat": "5.10.4",
         "nbclient": "0.10.2",
         "nbconvert": "7.16.6",
-        "requests": "2.32.3",
-        "ipykernel": "6.29.5"
+        "requests": "2.32.5",
+        "ipykernel": "6.31.0"
       },
       "source_hashes": [
         "4922df4b7f2e1270273bd765a2b24dd19337eb3110e4fbac86016f618a684c08",
