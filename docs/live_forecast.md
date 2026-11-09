@@ -64,6 +64,20 @@ schtasks /Create /SC WEEKLY /D MON,TUE,WED,THU,FRI /ST 22:30 /TN "spx-live-forec
 schtasks /Create /SC WEEKLY /D MON,TUE,WED,THU,FRI /ST 07:30 /TN "spx-live-forecast-morning" /TR "cmd /c cd /d C:\Dev\predictspxml && set PYTHONPATH=src && <path-to>\python.exe -m scripts.run_live_forecast"
 ```
 
+## Outputs to monitor
+
+- `artifacts/latest_forecast.csv` and `artifacts/daily/forecast_YYYY-MM-DD.csv`: what is currently issued.
+- `artifacts/live_scorecard.csv`: one row per issued forecast, scored when its settlement is known
+  (`inside_80`, `error_points`, `error_bps`, `interval_score_bps`). `actual_source` is `official_settlement`
+  when the Cboe record is in the data, or `cboe_close_proxy` for a weekly contract whose official record is not
+  imported yet (SPXW PM settles to the close). Monthly SET AM never uses the close and waits for its record.
+- `artifacts/live_scorecard_summary.csv`: per-horizon coverage with a 95% Wilson interval, median absolute error
+  and mean interval score, next to the backtest figures for the selected model (target coverage is 0.80).
+
+Judge slowly. Weekly gives about four scored forecasts a month and monthly one, so after a few weeks the coverage
+interval is very wide (for example 3 of 4 inside is consistent with anything from about 30% to 95%). Compare the
+interval score and the miss direction as well as coverage.
+
 ## Known limits
 
 - The pinned calendar ends 2026-12-31. The run warns (exit 2, `CALENDAR:` in the log and `calendar_runway_days` in

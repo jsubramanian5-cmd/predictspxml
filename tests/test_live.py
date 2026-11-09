@@ -150,3 +150,26 @@ def test_daily_table_lists_active_forecasts_and_explains_missing_ones(tmp_path):
     path, _ = write_daily_forecast(tmp_path, forecasts, statuses, pd.Timestamp('2026-11-10T02:30:00Z'))
     assert path.name == 'forecast_2026-11-09.csv' and (tmp_path / 'latest_forecast.csv').exists()
     assert pd.read_csv(path).shape == (2, len(DAILY_COLUMNS))
+
+
+def test_scorecard_scores_when_settled_uses_proxy_only_for_weekly_and_summarises():
+    import numpy as np
+    from spx_forecast.live import CLOSE_PROXY, OFFICIAL, live_scorecard, scorecard_summary
+    forecasts = _forecasts([
+        ('weekly', '2026-11-06', '2026-11-09T02:21:00+00:00', '2026-11-13', 'SPXW_PM', 7376.86, 7097.78, 7445.90, 7684.36, 'v', 'x'),
+        ('weekly', '2026-11-13', '2026-11-16T02:00:00+00:00', '2026-11-20', 'SPXW_PM', 7400.0, 7100.0, 7450.0, 7700.0, 'v', 'x'),
+        ('weekly', '2026-10-30', '2026-11-03T02:00:00+00:00', '2026-11-06', 'SPXW_PM', 7353.73, 7000.0, 7300.0, 7400.0, 'v', 'x'),
+        ('monthly', '2026-10-16', '2026-10-19T02:00:00+00:00', '2026-11-20', 'SET_AM', 7500.0, 7000.0, 7500.0, 8000.0, 'v', 'x')])
+    settlements = pd.DataFrame([dict(horizon='weekly', expiration=pd.Timestamp('2026-11-06'), settlement_type='SPXW_PM', settlement=7376.86)])
+    closes = pd.DataFrame({'date': pd.to_datetime(['2026-11-13', '2026-11-20']), 'value': [7800.0, 7390.0]})
+    card = live_scorecard(forecasts, settlements, closes).set_index(['horizon', 'expiration'])
+    official = card.loc[('weekly', '2026-11-06')]
+    assert official.status == 'scored' and official.actual_source == OFFICIAL and official.inside_80 == True  # noqa: E712
+    proxy = card.loc[('weekly', '2026-11-13')]
+    assert proxy.actual_source == CLOSE_PROXY and proxy.inside_80 == False  # 7800 above the 7684.36 upper bound  # noqa: E712
+    assert proxy.error_points == round(7800.0 - 7445.90, 2) and proxy.interval_score_bps > 0
+    # Monthly SET AM never falls back to the close, even though a close exists for that day.
+    assert card.loc[('monthly', '2026-11-20')].status == 'awaiting_settlement'
+    summary = scorecard_summary(card.reset_index(), {'weekly': (0.783, 662.5)}).set_index('horizon')
+    assert summary.loc['weekly', ['issued', 'scored', 'inside_80', 'proxy_actuals']].tolist() == [3, 3, 2, 2]
+    assert summary.loc['weekly', 'backtest_coverage_80'] == 0.783 and summary.loc['monthly', 'scored'] == 0
