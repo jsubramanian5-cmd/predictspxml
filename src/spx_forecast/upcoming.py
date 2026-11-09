@@ -16,6 +16,28 @@ COLUMNS = ["horizon", "nominal_expiration", "expiration", "scheduled_settlement_
            "settlement_source_sha256", "rule_source_url", "listing_basis"]
 
 
+class CalendarRunwayError(ValueError):
+    """The verified exchange calendar no longer covers the present."""
+
+
+def check_calendar_runway(calendar, as_of, warn_days=60):
+    """Fail loudly when the pinned calendar has ended; warn while fewer than `warn_days` remain.
+
+    Returns dict(calendar_end, runway_days, warning). `warning` is None when there is enough runway.
+    """
+    end = calendar.frame.date.max().normalize()
+    runway = int((end - pd.Timestamp(as_of).normalize()).days)
+    if runway < 0:
+        raise CalendarRunwayError(
+            f"Verified calendar ended {end.date()}, {-runway} days before {pd.Timestamp(as_of).date()}: "
+            f"import and review the {end.year + 1} Cboe annual calendar (docs/imports.md) before forecasting")
+    warning = None
+    if runway < warn_days:
+        warning = (f"Verified calendar ends {end.date()} ({runway} days left, warning below {warn_days}): "
+                   f"import the {end.year + 1} Cboe annual calendar or forecasts stop after that date")
+    return dict(calendar_end=str(end.date()), runway_days=runway, warning=warning)
+
+
 def upcoming_contracts(calendar, standard, last_nominal, through, rule_source_url):
     """Weekly end-of-week and standard monthly rows after `last_nominal[horizon]`, up to `through`."""
     through = pd.Timestamp(through).normalize()

@@ -8,11 +8,13 @@ OK, ERROR, WARNING, SUPPRESSED = 0, 1, 2, 3
 HISTORY_COLUMNS = ["checked_at", "horizon", "timing_status", "status"]
 
 
-def exit_code(statuses, refresh_results=None):
+def exit_code(statuses, refresh_results=None, warnings=()):
     """1 = hard error (raised by the caller); 3 = a horizon missed its issue window; 2 = a refresh failed
-    or overlapping history changed; 0 = ran cleanly (pending/waiting statuses are normal between contracts)."""
+    or overlapping history changed, or any other warning (e.g. calendar nearly out); 0 = ran cleanly (pending/waiting statuses are normal between contracts)."""
     if any(str(s).startswith("suppressed") for s in list(statuses.status) + list(statuses.timing_status)):
         return SUPPRESSED
+    if warnings:
+        return WARNING
     for report in (refresh_results or {}).values():
         if report.get("status") != "ok" or report.get("overlapping_mismatches", 0):
             return WARNING

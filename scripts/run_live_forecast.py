@@ -2,7 +2,8 @@
 
 Order matters: prices first, then upcoming contracts (they depend on contracts.csv), then the load and
 one availability check. Models come from the last backtest (`artifacts/run_metadata.json`); this run never
-re-selects or re-tunes. Exit codes: 0 ran cleanly, 1 error, 2 refresh warning, 3 a horizon missed its window.
+re-selects or re-tunes. Exit codes: 0 ran cleanly, 1 error (including an ended calendar), 2 warning (refresh problem or calendar
+nearly out), 3 a horizon missed its window.
 Run from the repository root:  python -m scripts.run_live_forecast   (needs the package installed or PYTHONPATH=src)
 """
 import argparse
@@ -34,7 +35,12 @@ def run(now, skip_refresh=False):
         refresh_results = refresh_prices(config.imports, timeout=config.timeout_seconds)
         log.info('1/4 price refresh: %s', json.dumps(refresh_results))
     _, receipt, through = build_upcoming(now.date(), imports=config.imports, output=config.output)
-    log.info('2/4 upcoming contracts: %d rows through %s', receipt['rows'], through.date())
+    log.info('2/4 upcoming contracts: %d rows through %s (calendar ends %s)', receipt['rows'], through.date(),
+             receipt['calendar_end'])
+    warnings = []
+    if receipt['warning']:
+        warnings.append(receipt['warning'])
+        log.warning('CALENDAR: %s', receipt['warning'])
     state = workflow.prepare(config)
     log.info('3/4 data loaded; sources pending: %d', int((state['issues'].status == 'pending').sum()))
     state['selected'] = load_selected(config.output)
@@ -42,7 +48,7 @@ def run(now, skip_refresh=False):
     append_history(config.output / 'forecast_status_history.csv', statuses)
     for row in statuses.itertuples():
         log.info('4/4 %s: %s | %s', row.horizon, row.timing_status, row.status)
-    return exit_code(statuses, refresh_results)
+    return exit_code(statuses, refresh_results, warnings)
 
 
 def main():

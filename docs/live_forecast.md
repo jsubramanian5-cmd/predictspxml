@@ -28,8 +28,8 @@ Steps 1-2 only need to be repeated, not changed, between runs; a rerun never ove
 | Code | Meaning |
 |---|---|
 | 0 | Ran cleanly. `pending`/`waiting_for_inputs`/`not_yet_eligible` are normal between contracts. |
-| 1 | Error (details in `.runtime/live_forecast.log`). |
-| 2 | A price refresh failed, or overlapping history changed. Forecasts used the files already on disk. |
+| 1 | Error (details in `.runtime/live_forecast.log`). Includes a verified calendar that has already ended. |
+| 2 | A price refresh failed, overlapping history changed, or the verified calendar ends within 60 days. Forecasts still ran with what was on disk. |
 | 3 | A horizon missed its issue window (`suppressed_*`). Worth an alert. |
 
 ## Scheduling
@@ -49,7 +49,9 @@ schtasks /Create /SC WEEKLY /D MON,TUE,WED,THU,FRI /ST 07:30 /TN "spx-live-forec
 
 ## Known limits
 
-- The pinned calendar ends 2026-12-31; import the next annual calendar before then.
+- The pinned calendar ends 2026-12-31. The run warns (exit 2, `CALENDAR:` in the log and `calendar_runway_days` in
+  `artifacts/upcoming_contracts_validation.json`) when fewer than 60 days remain, and fails (exit 1) once it has ended.
+  Import and review the next annual calendar before then.
 - FRED's SP500 publication lag is unverified. On the evening of 2026-11-08 FRED still had no value for
   the 2026-11-06 close, so a Friday reference may not be available by Monday 08:00 and would then be
   suppressed. Until the value arrives the status names the missing series; it is not substituted with

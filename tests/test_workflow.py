@@ -300,3 +300,15 @@ def test_upcoming_contracts_cannot_extend_beyond_verified_calendar(calendar):
     with pytest.raises(ValueError, match='beyond the verified calendar'):
         upcoming_contracts(calendar, _standard(), {'weekly': pd.Timestamp('2025-12-05'),
                            'monthly': pd.Timestamp('2025-11-21')}, '2026-01-30', 'https://www.sec.gov/rule.pdf')
+
+
+def test_calendar_runway_warns_then_fails_loudly(calendar):
+    from spx_forecast.upcoming import CalendarRunwayError, check_calendar_runway
+    # The fixture calendar ends 2025-12-31.
+    ok = check_calendar_runway(calendar, '2025-06-30', warn_days=60)
+    assert ok['warning'] is None and ok['runway_days'] == 184 and ok['calendar_end'] == '2025-12-31'
+    soon = check_calendar_runway(calendar, '2025-11-09', warn_days=60)
+    assert soon['runway_days'] == 52 and '2026 Cboe annual calendar' in soon['warning']
+    assert check_calendar_runway(calendar, '2025-12-31')['runway_days'] == 0
+    with pytest.raises(CalendarRunwayError, match='ended 2025-12-31, 5 days before 2026-01-05'):
+        check_calendar_runway(calendar, '2026-01-05')

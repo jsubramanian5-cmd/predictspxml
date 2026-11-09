@@ -66,3 +66,10 @@ def test_load_selected_requires_a_completed_backtest(tmp_path):
         load_selected(tmp_path)
     (tmp_path / 'run_metadata.json').write_text(json.dumps({'selected': {'weekly': {'family': 'scaled'}}}))
     assert load_selected(tmp_path) == {'weekly': {'family': 'scaled'}}
+
+
+def test_any_warning_such_as_calendar_runway_gives_warning_exit_code():
+    waiting = _statuses('waiting_for_inputs', 'pending')
+    assert exit_code(waiting, warnings=['Verified calendar ends 2026-12-31']) == WARNING
+    assert exit_code(waiting, warnings=[]) == OK
+    assert exit_code(_statuses('suppressed_late_inputs', 'suppressed_late_inputs'), warnings=['x']) == SUPPRESSED
