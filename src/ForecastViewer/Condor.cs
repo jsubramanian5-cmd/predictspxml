@@ -15,7 +15,8 @@ public static class Condor
 
     public sealed record Structure(
         string Name, double LongPut, double ShortPut, double ShortCall, double LongCall,
-        double NetDelta, double Credit, double MaxLoss, double ProbBetweenShorts);
+        double NetDelta, double Credit, double MaxLoss, double ProbBetweenShorts,
+        double LowerBreakeven, double UpperBreakeven, double ProbProfit);
 
     // ---- Black-Scholes -------------------------------------------------
 
@@ -72,8 +73,13 @@ public static class Condor
         var maxLoss = Multiplier * i.WingWidth - credit;
         // Risk-neutral P(shortPut < S_T < shortCall) = N(d2 at put) - N(d2 at call).
         var prob = Cdf(D(i, shortPut).d2) - Cdf(D(i, shortCall).d2);
+        // Expiry P&L is positive between the break-evens: the shorts moved out by the credit per share.
+        var lowerBe = shortPut - credit / Multiplier;
+        var upperBe = shortCall + credit / Multiplier;
+        var probProfit = Cdf(D(i, lowerBe).d2) - Cdf(D(i, upperBe).d2);
         return new Structure(name, longPut, shortPut, shortCall, longCall,
-            NetDelta(i, shortPut, shortCall), credit, maxLoss, prob);
+            NetDelta(i, shortPut, shortCall), credit, maxLoss, prob,
+            lowerBe, upperBe, probProfit);
     }
 
     /// <summary>
@@ -110,6 +116,32 @@ public static class Condor
             }
         }
         return (range, Build(i, "Delta-neutral", bestPut, bestCall));
+    }
+
+    /// <summary>
+    /// A conventional "possible" condor: short strikes at about the given absolute delta (default 16),
+    /// independent of the forecast range. Useful as a reference point against the range-based structures.
+    /// </summary>
+    public static Structure SolveByShortDelta(Inputs i, double targetDelta = 0.16)
+    {
+        double shortPut = 0, shortCall = 0;
+        double bestPutGap = double.MaxValue, bestCallGap = double.MaxValue;
+        var lo = Math.Floor(i.Spot * 0.7 / 5) * 5;
+        var hi = Math.Ceiling(i.Spot * 1.3 / 5) * 5;
+        for (var k = lo; k <= hi; k += 5)
+        {
+            if (k < i.Spot && k - i.WingWidth > 0)
+            {
+                var gap = Math.Abs(Math.Abs(PutDelta(i, k)) - targetDelta);
+                if (gap < bestPutGap) { bestPutGap = gap; shortPut = k; }
+            }
+            if (k > i.Spot)
+            {
+                var gap = Math.Abs(CallDelta(i, k) - targetDelta);
+                if (gap < bestCallGap) { bestCallGap = gap; shortCall = k; }
+            }
+        }
+        return Build(i, $"Possible ({targetDelta * 100:0}-delta shorts)", shortPut, shortCall);
     }
 
     // ---- Volatility lookup --------------------------------------------

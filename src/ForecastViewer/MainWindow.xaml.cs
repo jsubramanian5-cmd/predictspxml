@@ -17,6 +17,11 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        // Sized for a 2560x1440 monitor, but derived from the work area so it also
+        // fits when Windows display scaling is above 100%.
+        var work = SystemParameters.WorkArea;
+        Width = Math.Min(2000, work.Width * 0.85);
+        Height = Math.Min(1200, work.Height * 0.88);
         _dailyDir = FindDailyDir();
         Reload();
     }
@@ -73,8 +78,7 @@ public partial class MainWindow : Window
                           (errors > 0 ? $" ({errors} file(s) failed to parse)" : "");
     }
 
-    // Reload (not just BuildCondor) so the condor shown on the Weekly tab picks up the new inputs too.
-    private void Recalculate_Click(object sender, RoutedEventArgs e) => Reload();
+    private void Recalculate_Click(object sender, RoutedEventArgs e) => BuildCondor();
 
     private static bool TryParse(string text, out double value) =>
         double.TryParse(text, System.Globalization.NumberStyles.Float,
@@ -152,7 +156,9 @@ public partial class MainWindow : Window
                 CanUserAddRows = false,
                 HeadersVisibility = DataGridHeadersVisibility.Column,
                 GridLinesVisibility = DataGridGridLinesVisibility.Horizontal,
-                ItemsSource = new[] { range, neutral },
+                ItemsSource = new[] { range, neutral }
+                    .Concat(new[] { 0.05, 0.10, 0.15, 0.20 }.Select(d => Condor.SolveByShortDelta(inputs, d)))
+                    .ToList(),
                 Margin = new Thickness(0, 0, 0, 10),
             };
             grid.Columns.Add(Col("Structure", nameof(Condor.Structure.Name)));
@@ -163,7 +169,10 @@ public partial class MainWindow : Window
             grid.Columns.Add(Col("Net delta", nameof(Condor.Structure.NetDelta), "+0.0;-0.0;0.0"));
             grid.Columns.Add(Col("Credit $", nameof(Condor.Structure.Credit), "N0"));
             grid.Columns.Add(Col("Max loss $", nameof(Condor.Structure.MaxLoss), "N0"));
+            grid.Columns.Add(Col("Lower B/E", nameof(Condor.Structure.LowerBreakeven), "N0"));
+            grid.Columns.Add(Col("Upper B/E", nameof(Condor.Structure.UpperBreakeven), "N0"));
             grid.Columns.Add(Col("P(between shorts)", nameof(Condor.Structure.ProbBetweenShorts), "P0"));
+            grid.Columns.Add(Col("P(profit)", nameof(Condor.Structure.ProbProfit), "P0"));
             DockPanel.SetDock(grid, Dock.Top);
             panel.Children.Add(grid);
         }
@@ -239,9 +248,6 @@ public partial class MainWindow : Window
         var card = BuildCard(latest, latestIssued);
         DockPanel.SetDock(card, Dock.Top);
         panel.Children.Add(card);
-
-        if (horizon == "weekly")
-            AddCondorSection(panel, "weekly", "VIX9D_History.csv", "VIX9D");
 
         var grid = new DataGrid
         {
