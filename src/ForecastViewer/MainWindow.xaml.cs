@@ -12,6 +12,7 @@ namespace ForecastViewer;
 public partial class MainWindow : Window
 {
     private string? _dailyDir;
+    private List<ForecastRow> _rows = new();
 
     public MainWindow()
     {
@@ -63,11 +64,109 @@ public partial class MainWindow : Window
             catch (Exception) { errors++; }
         }
 
+        _rows = rows;
         BuildPanel(WeeklyPanel, rows, "weekly");
         BuildPanel(MonthlyPanel, rows, "monthly");
         BuildScorecard();
+        BuildCondor();
         StatusText.Text = $"Loaded {rows.Count} rows at {DateTime.Now:HH:mm:ss}" +
                           (errors > 0 ? $" ({errors} file(s) failed to parse)" : "");
+    }
+
+    // Reload (not just BuildCondor) so the condor shown on the Weekly tab picks up the new inputs too.
+    private void Recalculate_Click(object sender, RoutedEventArgs e) => Reload();
+
+    private static bool TryParse(string text, out double value) =>
+        double.TryParse(text, System.Globalization.NumberStyles.Float,
+            System.Globalization.CultureInfo.InvariantCulture, out value);
+
+    private void BuildCondor()
+    {
+        CondorPanel.Children.Clear();
+        AddCondorSection(CondorPanel, "weekly", "VIX9D_History.csv", "VIX9D");
+        AddCondorSection(CondorPanel, "monthly", "VIX_History.csv", "VIX");
+    }
+
+    /// <summary>Appends the range vs. delta-neutral condor for the latest issued forecast of a horizon.</summary>
+    private void AddCondorSection(DockPanel panel, string horizon, string volFile, string volName)
+    {
+        void Message(string text)
+        {
+            var t = new TextBlock { Text = text, Foreground = Brushes.Gray, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 8) };
+            DockPanel.SetDock(t, Dock.Top);
+            panel.Children.Add(t);
+        }
+
+        if (!TryParse(WingBox.Text, out var wing) || wing <= 0 ||
+            !TryParse(RateBox.Text, out var rate) || !TryParse(DivBox.Text, out var div))
+        {
+            Message("Enter valid numbers for wing width, rate and dividend yield (Iron condor tab).");
+            return;
+        }
+
+        var artifacts = _dailyDir == null ? null : Directory.GetParent(_dailyDir)?.FullName;
+        var imports = artifacts == null ? null : Path.Combine(Directory.GetParent(artifacts)!.FullName, "data", "imports");
+
+        {
+            var f = _rows.Where(r => r.Horizon == horizon && r.IsIssued)
+                         .OrderByDescending(r => r.AsOfDate).FirstOrDefault();
+            if (f == null || f.P10 is null || f.P90 is null || f.ReferenceClose is null ||
+                !DateTime.TryParse(f.Expiration, out var expiry))
+            {
+                Message($"{char.ToUpper(horizon[0]) + horizon[1..]}: no issued forecast yet.");
+                return;
+            }
+
+            var vol = imports == null ? null : Condor.LatestClose(Path.Combine(imports, volFile));
+            if (vol == null)
+            {
+                Message($"{horizon}: {volFile} not found under data/imports.");
+                return;
+            }
+
+            var days = (expiry.Date - f.AsOfDate.Date).TotalDays;
+            if (days <= 0)
+            {
+                Message($"{horizon}: forecast is already past expiration.");
+                return;
+            }
+
+            var inputs = new Condor.Inputs(f.ReferenceClose.Value, days / 365.0, vol.Value.Value,
+                rate / 100, div / 100, wing, f.P10.Value, f.P90.Value);
+            var (range, neutral) = Condor.Solve(inputs);
+
+            var header = new TextBlock
+            {
+                Text = $"{char.ToUpper(horizon[0]) + horizon[1..]}: spot {inputs.Spot:N2}, expires {f.Expiration} ({days:0} days), " +
+                       $"{volName} {vol.Value.Value:P1} (as of {vol.Value.Date:yyyy-MM-dd}), forecast range {inputs.P10:N0} - {inputs.P90:N0}",
+                FontWeight = FontWeights.SemiBold,
+                Margin = new Thickness(0, 4, 0, 4),
+            };
+            DockPanel.SetDock(header, Dock.Top);
+            panel.Children.Add(header);
+
+            var grid = new DataGrid
+            {
+                AutoGenerateColumns = false,
+                IsReadOnly = true,
+                CanUserAddRows = false,
+                HeadersVisibility = DataGridHeadersVisibility.Column,
+                GridLinesVisibility = DataGridGridLinesVisibility.Horizontal,
+                ItemsSource = new[] { range, neutral },
+                Margin = new Thickness(0, 0, 0, 10),
+            };
+            grid.Columns.Add(Col("Structure", nameof(Condor.Structure.Name)));
+            grid.Columns.Add(Col("Long put", nameof(Condor.Structure.LongPut), "N0"));
+            grid.Columns.Add(Col("Short put", nameof(Condor.Structure.ShortPut), "N0"));
+            grid.Columns.Add(Col("Short call", nameof(Condor.Structure.ShortCall), "N0"));
+            grid.Columns.Add(Col("Long call", nameof(Condor.Structure.LongCall), "N0"));
+            grid.Columns.Add(Col("Net delta", nameof(Condor.Structure.NetDelta), "+0.0;-0.0;0.0"));
+            grid.Columns.Add(Col("Credit $", nameof(Condor.Structure.Credit), "N0"));
+            grid.Columns.Add(Col("Max loss $", nameof(Condor.Structure.MaxLoss), "N0"));
+            grid.Columns.Add(Col("P(between shorts)", nameof(Condor.Structure.ProbBetweenShorts), "P0"));
+            DockPanel.SetDock(grid, Dock.Top);
+            panel.Children.Add(grid);
+        }
     }
 
     private void BuildScorecard()
@@ -140,6 +239,9 @@ public partial class MainWindow : Window
         var card = BuildCard(latest, latestIssued);
         DockPanel.SetDock(card, Dock.Top);
         panel.Children.Add(card);
+
+        if (horizon == "weekly")
+            AddCondorSection(panel, "weekly", "VIX9D_History.csv", "VIX9D");
 
         var grid = new DataGrid
         {

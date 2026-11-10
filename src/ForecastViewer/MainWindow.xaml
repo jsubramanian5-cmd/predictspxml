@@ -37,6 +37,22 @@
             <TabItem Header="Live scorecard">
                 <DockPanel x:Name="ScorecardPanel" Margin="8" />
             </TabItem>
+            <TabItem Header="Iron condor">
+                <DockPanel Margin="8">
+                    <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,8">
+                        <TextBlock Text="Wing width (pts)" VerticalAlignment="Center" />
+                        <TextBox x:Name="WingBox" Text="25" Width="50" Margin="6,0,16,0" />
+                        <TextBlock Text="Rate %" VerticalAlignment="Center" />
+                        <TextBox x:Name="RateBox" Text="4.0" Width="50" Margin="6,0,16,0" />
+                        <TextBlock Text="Div yield %" VerticalAlignment="Center" />
+                        <TextBox x:Name="DivBox" Text="1.3" Width="50" Margin="6,0,16,0" />
+                        <Button Content="Recalculate" Padding="10,3" Click="Recalculate_Click" />
+                    </StackPanel>
+                    <TextBlock DockPanel.Dock="Bottom" Foreground="#666" TextWrapping="Wrap" Margin="0,8,0,0"
+                               Text="Theoretical Black-Scholes estimate: one flat volatility (VIX9D for weekly, VIX for monthly), no skew, no live quotes. Credit and delta are per 1-lot (x100). Use real chain quotes before trading." />
+                    <DockPanel x:Name="CondorPanel" />
+                </DockPanel>
+            </TabItem>
         </TabControl>
     </DockPanel>
 </Window>
