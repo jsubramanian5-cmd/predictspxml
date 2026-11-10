@@ -1,0 +1,23 @@
+[
+  {
+    "Id": "a81d74d35d914b9c86bfb93bad4e99bb",
+    "AsOfDate": "2026-11-09T00:00:00",
+    "Horizon": "weekly",
+    "Expiration": "2026-11-13",
+    "Structure": "Possible (20-delta shorts)",
+    "LongPut": 7180,
+    "ShortPut": 7205,
+    "ShortCall": 7560,
+    "LongCall": 7585,
+    "WingWidth": 25,
+    "Credit": 914.5657842416995,
+    "MaxLoss": 1585.4342157583005,
+    "NetDelta": 0.10841297696646268,
+    "ProbProfit": 0.6257660352039323,
+    "Spot": 7376.86,
+    "Volatility": 0.2718,
+    "P10": 7097.78,
+    "P90": 7684.36,
+    "Notes": ""
+  }
+]
