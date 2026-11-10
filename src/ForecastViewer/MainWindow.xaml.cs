@@ -13,6 +13,8 @@ public partial class MainWindow : Window
 {
     private string? _dailyDir;
     private List<ForecastRow> _rows = new();
+    private List<PaperTrade> _trades = new();
+    private Dictionary<string, Settlement> _settlements = new();
 
     public MainWindow()
     {
@@ -70,15 +72,19 @@ public partial class MainWindow : Window
         }
 
         _rows = rows;
+        _trades = PaperTradeStore.Load(TradesPath());
+        _settlements = LoadSettlements();
         BuildPanel(WeeklyPanel, rows, "weekly");
         BuildPanel(MonthlyPanel, rows, "monthly");
         BuildScorecard();
         BuildCondor();
+        BuildJournal();
         StatusText.Text = $"Loaded {rows.Count} rows at {DateTime.Now:HH:mm:ss}" +
                           (errors > 0 ? $" ({errors} file(s) failed to parse)" : "");
     }
 
-    private void Recalculate_Click(object sender, RoutedEventArgs e) => BuildCondor();
+    // Reload (not just BuildCondor) so the condor shown on the Monthly tab picks up the new inputs too.
+    private void Recalculate_Click(object sender, RoutedEventArgs e) => Reload();
 
     private static bool TryParse(string text, out double value) =>
         double.TryParse(text, System.Globalization.NumberStyles.Float,
@@ -149,18 +155,42 @@ public partial class MainWindow : Window
             DockPanel.SetDock(header, Dock.Top);
             panel.Children.Add(header);
 
+            var structures = new[] { range, neutral }
+                .Concat(new[] { 0.05, 0.10, 0.15, 0.20 }.Select(d => Condor.SolveByShortDelta(inputs, d)));
+            var condorRows = structures
+                .Select(s => new CondorRow(s, inputs, horizon, f.Expiration, f.AsOfDate))
+                .ToList();
+            foreach (var row in condorRows)
+            {
+                row.SetPaperSilently(_trades.Any(t => t.Key == row.Key));
+                row.PaperToggled += OnPaperToggled;
+            }
+
+            // Not read-only overall so the Paper checkbox can be ticked; every other column is read-only.
             var grid = new DataGrid
             {
                 AutoGenerateColumns = false,
-                IsReadOnly = true,
+                IsReadOnly = false,
                 CanUserAddRows = false,
+                CanUserDeleteRows = false,
                 HeadersVisibility = DataGridHeadersVisibility.Column,
                 GridLinesVisibility = DataGridGridLinesVisibility.Horizontal,
-                ItemsSource = new[] { range, neutral }
-                    .Concat(new[] { 0.05, 0.10, 0.15, 0.20 }.Select(d => Condor.SolveByShortDelta(inputs, d)))
-                    .ToList(),
+                ItemsSource = condorRows,
                 Margin = new Thickness(0, 0, 0, 10),
             };
+            var checkbox = new FrameworkElementFactory(typeof(CheckBox));
+            checkbox.SetBinding(CheckBox.IsCheckedProperty, new Binding(nameof(CondorRow.Paper))
+            {
+                Mode = BindingMode.TwoWay,
+                UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged,
+            });
+            checkbox.SetValue(HorizontalAlignmentProperty, HorizontalAlignment.Center);
+            checkbox.SetValue(VerticalAlignmentProperty, VerticalAlignment.Center);
+            grid.Columns.Add(new DataGridTemplateColumn
+            {
+                Header = "Paper",
+                CellTemplate = new DataTemplate { VisualTree = checkbox },
+            });
             grid.Columns.Add(Col("Structure", nameof(Condor.Structure.Name)));
             grid.Columns.Add(Col("Long put", nameof(Condor.Structure.LongPut), "N0"));
             grid.Columns.Add(Col("Short put", nameof(Condor.Structure.ShortPut), "N0"));
@@ -177,6 +207,199 @@ public partial class MainWindow : Window
             panel.Children.Add(grid);
         }
     }
+
+    // ---- Paper trading -------------------------------------------------
+
+    /// <summary>data/paper_trades.json, next to data/imports (the repo root is the parent of artifacts/).</summary>
+    private string? TradesPath()
+    {
+        var artifacts = _dailyDir == null ? null : Directory.GetParent(_dailyDir)?.FullName;
+        var root = artifacts == null ? null : Directory.GetParent(artifacts)?.FullName;
+        return root == null ? null : Path.Combine(root, "data", "paper_trades.json");
+    }
+
+    private static string SettlementKey(string horizon, string expiration) => $"{horizon}|{expiration}";
+
+    /// <summary>Settled levels from artifacts/live_scorecard.csv, keyed by horizon and expiration.</summary>
+    private Dictionary<string, Settlement> LoadSettlements()
+    {
+        var result = new Dictionary<string, Settlement>();
+        var artifacts = _dailyDir == null ? null : Directory.GetParent(_dailyDir)?.FullName;
+        var path = artifacts == null ? null : Path.Combine(artifacts, "live_scorecard.csv");
+        if (path == null || !File.Exists(path)) return result;
+
+        var rows = Csv.Read(path).ToList();
+        if (rows.Count < 2) return result;
+        var header = rows[0];
+        int horizon = header.IndexOf("horizon"), expiration = header.IndexOf("expiration"),
+            actual = header.IndexOf("actual_level"), source = header.IndexOf("actual_source");
+        if (horizon < 0 || expiration < 0 || actual < 0) return result;
+
+        foreach (var r in rows.Skip(1))
+        {
+            if (r.Count <= Math.Max(Math.Max(horizon, expiration), actual)) continue;
+            if (!double.TryParse(r[actual], System.Globalization.NumberStyles.Float,
+                    System.Globalization.CultureInfo.InvariantCulture, out var level)) continue;
+            result[SettlementKey(r[horizon], r[expiration])] =
+                new Settlement(level, source >= 0 && source < r.Count ? r[source] : "");
+        }
+        return result;
+    }
+
+    private void SaveTrades()
+    {
+        var path = TradesPath();
+        if (path == null) { StatusText.Text = "Cannot save paper trades: no data folder."; return; }
+        try { PaperTradeStore.Save(path, _trades); }
+        catch (Exception ex) { StatusText.Text = $"Could not save paper trades: {ex.Message}"; }
+    }
+
+    private void OnPaperToggled(CondorRow row, bool isChecked)
+    {
+        if (isChecked)
+        {
+            if (!_trades.Any(t => t.Key == row.Key)) _trades.Add(row.ToTrade());
+        }
+        else
+        {
+            var existing = _trades.FirstOrDefault(t => t.Key == row.Key);
+            if (existing != null)
+            {
+                if (_settlements.ContainsKey(SettlementKey(existing.Horizon, existing.Expiration)))
+                {
+                    MessageBox.Show(this, "This trade has already settled. Use Delete selected on the Paper trades tab if you really want to remove it.",
+                        "Paper trade", MessageBoxButton.OK, MessageBoxImage.Information);
+                    Dispatcher.BeginInvoke(new Action(() => row.SetPaperSilently(true)));
+                    return;
+                }
+                _trades.Remove(existing);
+            }
+        }
+        SaveTrades();
+        // The same condor can appear on more than one tab, so rebuild everything once this click has finished.
+        Dispatcher.BeginInvoke(new Action(Reload));
+    }
+
+    private void BuildJournal()
+    {
+        PaperPanel.Children.Clear();
+        void Add(UIElement element, Dock dock)
+        {
+            DockPanel.SetDock(element, dock);
+            PaperPanel.Children.Add(element);
+        }
+
+        var rows = _trades.OrderByDescending(t => t.AsOfDate).ThenBy(t => t.Horizon).ThenBy(t => t.Structure)
+            .Select(t => new PaperTradeRow(t, _settlements.GetValueOrDefault(SettlementKey(t.Horizon, t.Expiration))))
+            .ToList();
+        var settled = rows.Where(r => r.IsSettled).ToList();
+
+        if (rows.Count == 0)
+        {
+            Add(new TextBlock
+            {
+                Text = "No paper trades yet. Tick the Paper box on a condor in the Iron condor tab to start your journal.",
+                Foreground = Brushes.Gray, TextWrapping = TextWrapping.Wrap,
+            }, Dock.Top);
+            return;
+        }
+
+        // Overall summary.
+        var wins = settled.Count(r => r.Pnl > 0);
+        var totalPnl = settled.Sum(r => r.Pnl ?? 0);
+        var forecasts = settled.GroupBy(r => (r.Horizon, r.Expiration, r.AsOfDate)).ToList();
+        var forecastHits = forecasts.Count(g => g.First().InsideForecast == "Yes");
+        var summary = $"{rows.Count} trades: {settled.Count} settled, {rows.Count - settled.Count} open.   " +
+                      (settled.Count == 0
+                          ? "Results appear here once the live scorecard records a settlement."
+                          : $"Wins {wins}/{settled.Count} ({(double)wins / settled.Count:P0}),  total P&L {totalPnl:+$#,##0;-$#,##0;$0},  " +
+                            $"average {totalPnl / settled.Count:+$#,##0;-$#,##0;$0}.   " +
+                            $"Forecast range held (P10-P90) in {forecastHits}/{forecasts.Count} settled forecasts.");
+        Add(new TextBlock
+        {
+            Text = summary, FontWeight = FontWeights.SemiBold, TextWrapping = TextWrapping.Wrap,
+            Margin = new Thickness(0, 0, 0, 8),
+        }, Dock.Top);
+
+        // Per-structure results: shows which way of choosing a condor is working.
+        var stats = rows.GroupBy(r => r.Structure).Select(g =>
+        {
+            var s = g.Where(r => r.IsSettled).ToList();
+            var w = s.Count(r => r.Pnl > 0);
+            var pnl = s.Sum(r => r.Pnl ?? 0);
+            return new StructureStat(g.Key, g.Count(), s.Count, w,
+                s.Count == 0 ? null : (double)w / s.Count, pnl, s.Count == 0 ? null : pnl / s.Count);
+        }).OrderBy(x => x.Structure).ToList();
+
+        Add(new TextBlock { Text = "By structure", FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 0, 0, 4) }, Dock.Top);
+        var statGrid = NewReadOnlyGrid(stats);
+        statGrid.MaxHeight = 220;
+        statGrid.Columns.Add(Col("Structure", nameof(StructureStat.Structure)));
+        statGrid.Columns.Add(Col("Trades", nameof(StructureStat.Trades)));
+        statGrid.Columns.Add(Col("Settled", nameof(StructureStat.Settled)));
+        statGrid.Columns.Add(Col("Wins", nameof(StructureStat.Wins)));
+        statGrid.Columns.Add(Col("Win rate", nameof(StructureStat.WinRate), "P0"));
+        statGrid.Columns.Add(Col("Total P&L $", nameof(StructureStat.TotalPnl), "+#,##0;-#,##0;0"));
+        statGrid.Columns.Add(Col("Avg P&L $", nameof(StructureStat.AveragePnl), "+#,##0;-#,##0;0"));
+        statGrid.Margin = new Thickness(0, 0, 0, 10);
+        Add(statGrid, Dock.Top);
+
+        // Buttons + journal.
+        var delete = new Button { Content = "Delete selected", Padding = new Thickness(10, 3, 10, 3), HorizontalAlignment = HorizontalAlignment.Left, Margin = new Thickness(0, 0, 0, 6) };
+        Add(new TextBlock { Text = "Journal (edit the Notes column to record why you picked a trade)", FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 0, 0, 4) }, Dock.Top);
+        Add(delete, Dock.Top);
+
+        var journal = NewReadOnlyGrid(rows);
+        journal.IsReadOnly = false;
+        journal.SelectionMode = DataGridSelectionMode.Extended;
+        journal.Columns.Add(Col("Picked", nameof(PaperTradeRow.AsOfDate), "yyyy-MM-dd"));
+        journal.Columns.Add(Col("Horizon", nameof(PaperTradeRow.Horizon)));
+        journal.Columns.Add(Col("Expiration", nameof(PaperTradeRow.Expiration)));
+        journal.Columns.Add(Col("Structure", nameof(PaperTradeRow.Structure)));
+        journal.Columns.Add(Col("Strikes", nameof(PaperTradeRow.Strikes)));
+        journal.Columns.Add(Col("Credit $", nameof(PaperTradeRow.Credit), "N0"));
+        journal.Columns.Add(Col("Max loss $", nameof(PaperTradeRow.MaxLoss), "N0"));
+        journal.Columns.Add(Col("P(profit)", nameof(PaperTradeRow.ProbProfit), "P0"));
+        journal.Columns.Add(Col("Settled at", nameof(PaperTradeRow.SettleLevel), "N2"));
+        journal.Columns.Add(Col("Source", nameof(PaperTradeRow.SettleSource)));
+        journal.Columns.Add(Col("P&L $", nameof(PaperTradeRow.Pnl), "+#,##0;-#,##0;0"));
+        journal.Columns.Add(Col("Result", nameof(PaperTradeRow.Result)));
+        journal.Columns.Add(Col("In shorts", nameof(PaperTradeRow.InsideShorts)));
+        journal.Columns.Add(Col("In forecast", nameof(PaperTradeRow.InsideForecast)));
+        journal.Columns.Add(new DataGridTextColumn
+        {
+            Header = "Notes",
+            Binding = new Binding(nameof(PaperTradeRow.Notes)) { Mode = BindingMode.TwoWay, UpdateSourceTrigger = UpdateSourceTrigger.LostFocus },
+            Width = new DataGridLength(1, DataGridLengthUnitType.Star),
+            IsReadOnly = false,
+        });
+        // The Notes setter runs when the edit commits, which is after this event, so save once it has.
+        journal.CellEditEnding += (_, _) =>
+            Dispatcher.BeginInvoke(new Action(SaveTrades), System.Windows.Threading.DispatcherPriority.Background);
+
+        delete.Click += (_, _) =>
+        {
+            var selected = journal.SelectedItems.OfType<PaperTradeRow>().ToList();
+            if (selected.Count == 0) return;
+            if (MessageBox.Show(this, $"Delete {selected.Count} paper trade(s)? This cannot be undone.",
+                    "Paper trade", MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes) return;
+            foreach (var s in selected) _trades.Remove(s.Trade);
+            SaveTrades();
+            Reload();
+        };
+        PaperPanel.Children.Add(journal);
+    }
+
+    private static DataGrid NewReadOnlyGrid(System.Collections.IEnumerable items) => new()
+    {
+        AutoGenerateColumns = false,
+        IsReadOnly = true,
+        CanUserAddRows = false,
+        HeadersVisibility = DataGridHeadersVisibility.Column,
+        GridLinesVisibility = DataGridGridLinesVisibility.Horizontal,
+        AlternatingRowBackground = new SolidColorBrush(Color.FromRgb(0xF6, 0xF6, 0xF6)),
+        ItemsSource = items,
+    };
 
     private void BuildScorecard()
     {
@@ -249,6 +472,9 @@ public partial class MainWindow : Window
         DockPanel.SetDock(card, Dock.Top);
         panel.Children.Add(card);
 
+        if (horizon == "monthly")
+            AddCondorSection(panel, "monthly", "VIX_History.csv", "VIX");
+
         var grid = new DataGrid
         {
             AutoGenerateColumns = false,
@@ -283,8 +509,9 @@ public partial class MainWindow : Window
         new()
         {
             Header = header,
-            Binding = new Binding(path) { StringFormat = format },
+            Binding = new Binding(path) { StringFormat = format, Mode = BindingMode.OneWay },
             Width = DataGridLength.Auto,
+            IsReadOnly = true,
         };
 
     private UIElement BuildCard(ForecastRow? latest, ForecastRow? issued)

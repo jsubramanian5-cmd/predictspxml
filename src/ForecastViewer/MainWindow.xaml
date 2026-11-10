@@ -53,6 +53,9 @@
                     <DockPanel x:Name="CondorPanel" />
                 </DockPanel>
             </TabItem>
+            <TabItem Header="Paper trades">
+                <DockPanel x:Name="PaperPanel" Margin="8" />
+            </TabItem>
         </TabControl>
     </DockPanel>
 </Window>
