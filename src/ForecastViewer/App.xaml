@@ -1,0 +1,25 @@
+<Application x:Class="ForecastViewer.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             StartupUri="MainWindow.xaml">
+    <Application.Resources>
+        <!-- Simple logo: rounded dark tile with a rising line and a P10-P90 band -->
+        <DrawingImage x:Key="LogoImage">
+            <DrawingImage.Drawing>
+                <DrawingGroup>
+                    <GeometryDrawing Brush="#1F3A5F">
+                        <GeometryDrawing.Geometry>
+                            <RectangleGeometry Rect="0,0,64,64" RadiusX="12" RadiusY="12" />
+                        </GeometryDrawing.Geometry>
+                    </GeometryDrawing>
+                    <GeometryDrawing Brush="#403FA9F5" Geometry="M8,44 L56,14 L56,34 L8,56 Z" />
+                    <GeometryDrawing Geometry="M8,50 L24,38 L34,42 L56,22">
+                        <GeometryDrawing.Pen>
+                            <Pen Brush="#FFFFFF" Thickness="4" StartLineCap="Round" EndLineCap="Round" LineJoin="Round" />
+                        </GeometryDrawing.Pen>
+                    </GeometryDrawing>
+                </DrawingGroup>
+            </DrawingImage.Drawing>
+        </DrawingImage>
+    </Application.Resources>
+</Application>

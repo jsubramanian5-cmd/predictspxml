@@ -16,3 +16,6 @@ __pycache__/
 *.pem
 *.key
 .virtual_documents/
+
+src/**/bin/
+src/**/obj/
