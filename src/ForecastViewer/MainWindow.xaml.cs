@@ -309,7 +309,11 @@ public partial class MainWindow : Window
         var totalPnl = settled.Sum(r => r.Pnl ?? 0);
         var forecasts = settled.GroupBy(r => (r.Horizon, r.Expiration, r.AsOfDate)).ToList();
         var forecastHits = forecasts.Count(g => g.First().InsideForecast == "Yes");
-        var summary = $"{rows.Count} trades: {settled.Count} settled, {rows.Count - settled.Count} open.   " +
+        var withFill = rows.Where(r => r.Slippage != null).ToList();
+        var fillNote = withFill.Count == 0
+            ? "Using model credits (enter a Fill credit to use real quotes).   "
+            : $"{withFill.Count} trade(s) use your fill credit (avg slippage {withFill.Average(r => r.Slippage!.Value):+$#,##0;-$#,##0;$0}).   ";
+        var summary = $"{rows.Count} trades: {settled.Count} settled, {rows.Count - settled.Count} open.   " + fillNote +
                       (settled.Count == 0
                           ? "Results appear here once the live scorecard records a settlement."
                           : $"Wins {wins}/{settled.Count} ({(double)wins / settled.Count:P0}),  total P&L {totalPnl:+$#,##0;-$#,##0;$0},  " +
@@ -327,8 +331,10 @@ public partial class MainWindow : Window
             var s = g.Where(r => r.IsSettled).ToList();
             var w = s.Count(r => r.Pnl > 0);
             var pnl = s.Sum(r => r.Pnl ?? 0);
+            var slips = g.Where(r => r.Slippage != null).Select(r => r.Slippage!.Value).ToList();
             return new StructureStat(g.Key, g.Count(), s.Count, w,
-                s.Count == 0 ? null : (double)w / s.Count, pnl, s.Count == 0 ? null : pnl / s.Count);
+                s.Count == 0 ? null : (double)w / s.Count, pnl, s.Count == 0 ? null : pnl / s.Count,
+                slips.Count == 0 ? null : slips.Average());
         }).OrderBy(x => x.Structure).ToList();
 
         Add(new TextBlock { Text = "By structure", FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 0, 0, 4) }, Dock.Top);
@@ -341,6 +347,7 @@ public partial class MainWindow : Window
         statGrid.Columns.Add(Col("Win rate", nameof(StructureStat.WinRate), "P0"));
         statGrid.Columns.Add(Col("Total P&L $", nameof(StructureStat.TotalPnl), "+#,##0;-#,##0;0"));
         statGrid.Columns.Add(Col("Avg P&L $", nameof(StructureStat.AveragePnl), "+#,##0;-#,##0;0"));
+        statGrid.Columns.Add(Col("Avg slippage $", nameof(StructureStat.AverageSlippage), "+#,##0;-#,##0;0"));
         statGrid.Margin = new Thickness(0, 0, 0, 10);
         Add(statGrid, Dock.Top);
 
@@ -357,11 +364,26 @@ public partial class MainWindow : Window
         journal.Columns.Add(Col("Expiration", nameof(PaperTradeRow.Expiration)));
         journal.Columns.Add(Col("Structure", nameof(PaperTradeRow.Structure)));
         journal.Columns.Add(Col("Strikes", nameof(PaperTradeRow.Strikes)));
-        journal.Columns.Add(Col("Credit $", nameof(PaperTradeRow.Credit), "N0"));
+        journal.Columns.Add(Col("Model credit $", nameof(PaperTradeRow.Credit), "N0"));
+        journal.Columns.Add(new DataGridTextColumn
+        {
+            Header = "Fill credit $ (edit)",
+            Binding = new Binding(nameof(PaperTradeRow.FillCredit))
+            {
+                Mode = BindingMode.TwoWay,
+                StringFormat = "N0",
+                UpdateSourceTrigger = UpdateSourceTrigger.LostFocus,
+                ValidatesOnExceptions = true,
+            },
+            Width = DataGridLength.Auto,
+            IsReadOnly = false,
+        });
+        journal.Columns.Add(Col("Slippage $", nameof(PaperTradeRow.Slippage), "+#,##0;-#,##0;0"));
         journal.Columns.Add(Col("Max loss $", nameof(PaperTradeRow.MaxLoss), "N0"));
         journal.Columns.Add(Col("P(profit)", nameof(PaperTradeRow.ProbProfit), "P0"));
         journal.Columns.Add(Col("Settled at", nameof(PaperTradeRow.SettleLevel), "N2"));
         journal.Columns.Add(Col("Source", nameof(PaperTradeRow.SettleSource)));
+        journal.Columns.Add(Col("Model P&L $", nameof(PaperTradeRow.ModelPnl), "+#,##0;-#,##0;0"));
         journal.Columns.Add(Col("P&L $", nameof(PaperTradeRow.Pnl), "+#,##0;-#,##0;0"));
         journal.Columns.Add(Col("Result", nameof(PaperTradeRow.Result)));
         journal.Columns.Add(Col("In shorts", nameof(PaperTradeRow.InsideShorts)));
@@ -374,8 +396,17 @@ public partial class MainWindow : Window
             IsReadOnly = false,
         });
         // The Notes setter runs when the edit commits, which is after this event, so save once it has.
-        journal.CellEditEnding += (_, _) =>
-            Dispatcher.BeginInvoke(new Action(SaveTrades), System.Windows.Threading.DispatcherPriority.Background);
+        // A fill-credit edit also changes P&L, results and the summary, so rebuild the journal after it.
+        journal.CellEditEnding += (_, e) =>
+        {
+            var fillEdited = e.EditAction == DataGridEditAction.Commit &&
+                             Equals(e.Column.Header, "Fill credit $ (edit)");
+            Dispatcher.BeginInvoke(new Action(() =>
+            {
+                SaveTrades();
+                if (fillEdited) BuildJournal();
+            }), System.Windows.Threading.DispatcherPriority.Background);
+        };
 
         delete.Click += (_, _) =>
         {

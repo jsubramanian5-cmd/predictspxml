@@ -38,12 +38,27 @@ public sealed class PaperTrade
         string.Create(CultureInfo.InvariantCulture,
             $"{horizon}|{asOf:yyyy-MM-dd}|{structure}|{longPut}|{shortPut}|{shortCall}|{longCall}");
 
-    /// <summary>Expiry P&amp;L in dollars per 1-lot: the credit minus any loss on the put and call spreads.</summary>
-    public double PnlAt(double settlement)
+    /// <summary>The credit the user actually expects to receive (from live quotes), if entered. Null means "use the model credit".</summary>
+    public double? FillCredit { get; set; }
+
+    [JsonIgnore]
+    public double EffectiveCredit => FillCredit ?? Credit;
+
+    /// <summary>Largest credit that makes sense for this structure, in dollars per 1-lot.</summary>
+    [JsonIgnore]
+    public double MaxCredit => Condor.Multiplier * (ShortPut - LongPut);
+
+    /// <summary>Expiry P&amp;L in dollars per 1-lot, using the fill credit when one was entered.</summary>
+    public double PnlAt(double settlement) => PnlAt(settlement, EffectiveCredit);
+
+    /// <summary>Expiry P&amp;L using the model's credit, regardless of any fill.</summary>
+    public double ModelPnlAt(double settlement) => PnlAt(settlement, Credit);
+
+    private double PnlAt(double settlement, double credit)
     {
         var putLoss = Math.Clamp(ShortPut - settlement, 0, ShortPut - LongPut);
         var callLoss = Math.Clamp(settlement - ShortCall, 0, LongCall - ShortCall);
-        return Credit - Condor.Multiplier * (putLoss + callLoss);
+        return credit - Condor.Multiplier * (putLoss + callLoss);
     }
 }
 
@@ -93,14 +108,33 @@ public sealed class PaperTradeRow
     public string Expiration => Trade.Expiration;
     public string Structure => Trade.Structure;
     public string Strikes => $"{Trade.LongPut:0}/{Trade.ShortPut:0} - {Trade.ShortCall:0}/{Trade.LongCall:0}";
+    /// <summary>The model's credit at the time of the pick.</summary>
     public double Credit => Trade.Credit;
-    public double MaxLoss => Trade.MaxLoss;
+
+    /// <summary>Editable. Blank means "use the model credit".</summary>
+    public double? FillCredit
+    {
+        get => Trade.FillCredit;
+        set
+        {
+            if (value is { } v && (v <= 0 || v >= Trade.MaxCredit))
+                throw new ArgumentException($"Enter a credit between 0 and {Trade.MaxCredit:N0} (wing width x 100).");
+            Trade.FillCredit = value;
+        }
+    }
+
+    /// <summary>Fill minus model credit; negative means worse than the model. Blank until a fill is entered.</summary>
+    public double? Slippage => Trade.FillCredit is { } fill ? fill - Trade.Credit : null;
+
+    /// <summary>Max loss from the credit actually used (fill if entered, otherwise model).</summary>
+    public double MaxLoss => Trade.MaxCredit - Trade.EffectiveCredit;
     public double ProbProfit => Trade.ProbProfit;
 
     public bool IsSettled => Settlement != null;
     public double? SettleLevel => Settlement?.Level;
     public string SettleSource => Settlement?.Source ?? "";
     public double? Pnl => Settlement == null ? null : Trade.PnlAt(Settlement.Level);
+    public double? ModelPnl => Settlement == null ? null : Trade.ModelPnlAt(Settlement.Level);
     public string Result => Pnl is null ? "Open" : Pnl > 0 ? "Win" : "Loss";
 
     public string InsideShorts => Settlement == null ? "" :
@@ -118,4 +152,5 @@ public sealed class PaperTradeRow
 }
 
 public sealed record StructureStat(
-    string Structure, int Trades, int Settled, int Wins, double? WinRate, double TotalPnl, double? AveragePnl);
+    string Structure, int Trades, int Settled, int Wins, double? WinRate, double TotalPnl, double? AveragePnl,
+    double? AverageSlippage);
