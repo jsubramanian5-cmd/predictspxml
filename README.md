@@ -134,6 +134,10 @@ while source audits and other supported sections continue. Synthetic data exists
 Separate horizon models fit 10th/50th/90th percentiles. Weekly XGBoost evaluates all eight
 requested configurations; monthly has one. Linear quantile regression, empirical and
 VIX9D/VIX-scaled benchmarks use training-window data only. Crossings are sorted and counted.
+GARCH(1,1) and HAR-RV candidates (`src/spx_forecast/volatility.py`) work like the VIX-scaled benchmark
+but take their scale from a volatility forecast fitted to daily SPX returns up to the reference session;
+HAR-RV uses squared daily returns because no intraday data is held. They compete with linear and XGBoost
+as challengers, so they too must beat the benchmark on the final test to be selected.
 Five complete training years, at least two development years and the latest two complete
 calendar years before configured `end` are mandatory. Configurations freeze before final testing.
 ML promotion requires a lower paired final-test interval score and coverage at least as

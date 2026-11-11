@@ -1,7 +1,9 @@
 import numpy as np
 import pandas as pd
 
-FEATURES = ["return_1", "return_5", "return_20", "realized_vol_5", "realized_vol_20",
+from .volatility import SCALE_COLUMNS, volatility_scales
+
+FEATURES =["return_1", "return_5", "return_20", "realized_vol_5", "realized_vol_20",
             "vix", "vix9d", "vix9d_vix", "price_mean20", "calendar_days", "remaining_sessions"]
 
 
@@ -87,6 +89,8 @@ def build_observations(schedule, daily, datasets, calendar):
     valid &= obs.features_complete & obs.issue_time.notna() & (obs.issue_time <= obs.cutoff)
     obs = obs.loc[valid].copy()
     obs["scale"] = np.where(obs.horizon.eq("weekly"), obs.vix9d, obs.vix) / 100 * np.sqrt(obs.calendar_days / 365)
+    # Model-based scales for the GARCH and HAR-RV candidates; they are not model features.
+    obs[SCALE_COLUMNS] = volatility_scales(obs, daily.spx)
     return {h: obs.loc[obs.horizon.eq(h)].sort_values("issue_time").reset_index(drop=True) for h in ("weekly", "monthly")}
 
 

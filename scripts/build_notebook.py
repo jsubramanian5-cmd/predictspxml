@@ -131,6 +131,9 @@ Comparison candidates: StandardScaler + linear QuantileRegressor (`highs`, L1 α
 empirical historical return quantiles, and volatility-scaled historical quantiles. Scale is
 `(VIX9D or VIX)/100 * sqrt(calendar_days/365)`. Historical basis-point returns are divided by
 their own scales, quantiles estimated in the training window, then multiplied by the issue's scale.
+GARCH(1,1) and HAR-RV candidates are scaled the same way, with the scale taken from a volatility forecast
+fitted to daily SPX returns up to the reference session (HAR-RV on squared daily returns). They are
+challengers alongside linear and XGBoost, not benchmarks.
 All learned preprocessing is fit inside each expanding training window. Crossed quantiles are sorted
 before scoring; raw crossing frequency is reported. Levels equal `reference_close * exp(return_bps/10000)`.
 """)
@@ -171,6 +174,8 @@ code("""# Development actual vs predicted settlement chart
 figure = plots.actual_vs_prediction(development_predictions, state['frozen'], 'development')
 figure.savefig(CONFIG.output / 'development_actual_vs_prediction.png', bbox_inches='tight')
 plt.show()
+# Same chart, interactive: hover a date for the settlement and each median (with its miss)
+plots.interactive_actual_vs_prediction(development_predictions, state['frozen'], 'development')
 """)
 md("""## 7. Final test runs
 Only the development-selected benchmark and ML candidate enter the final test. Refits remain expanding:
@@ -187,6 +192,8 @@ code("""# Final-test actual vs predicted settlement chart
 figure = plots.actual_vs_prediction(final_predictions, state['frozen'], 'final_test')
 figure.savefig(CONFIG.output / 'final_test_actual_vs_prediction.png', bbox_inches='tight')
 plt.show()
+# Same chart, interactive: hover a date for the settlement and each median (with its miss)
+plots.interactive_actual_vs_prediction(final_predictions, state['frozen'], 'final_test')
 """)
 code("""# Final model comparison chart
 figure = plots.comparisons(final_metrics)
@@ -207,12 +214,18 @@ figure = plots.yearly_actual_vs_prediction(yearly_predictions, state['frozen'], 
                                            YEAR_PANELS, (EXTENSION_YEAR,))
 figure.savefig(CONFIG.output / 'weekly_actual_vs_prediction_by_year.png', bbox_inches='tight', dpi=130)
 plt.show()
+# Same chart, interactive
+plots.interactive_yearly_actual_vs_prediction(yearly_predictions, state['frozen'], 'weekly',
+                                              YEAR_PANELS, (EXTENSION_YEAR,))
 """)
 code("""# Monthly actual vs predicted settlement, 2024-2026
 figure = plots.yearly_actual_vs_prediction(yearly_predictions, state['frozen'], 'monthly',
                                            YEAR_PANELS, (EXTENSION_YEAR,))
 figure.savefig(CONFIG.output / 'monthly_actual_vs_prediction_by_year.png', bbox_inches='tight', dpi=130)
 plt.show()
+# Same chart, interactive
+plots.interactive_yearly_actual_vs_prediction(yearly_predictions, state['frozen'], 'monthly',
+                                              YEAR_PANELS, (EXTENSION_YEAR,))
 """)
 md("""### Forecast ranges table: 2025 and 2026
 The selected model's 10th percentile, median and 90th percentile settlement levels for every scored weekly and monthly expiration, next to the official settlement. `within_80` marks settlements inside the 10th–90th range. 2026 rows are the post-holdout extension. Saved to `artifacts/forecast_ranges_2025_2026.csv`.

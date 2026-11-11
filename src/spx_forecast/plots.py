@@ -15,7 +15,8 @@ def label(model):
         return f"Linear α={config['alpha']}"
     if family == 'xgb':
         return f"XGB depth={config['max_depth']}, trees={config['n_estimators']}, L2={config['reg_lambda']}"
-    return {'empirical': 'Historical quantiles', 'scaled': 'Volatility-scaled quantiles'}[family]
+    return {'empirical': 'Historical quantiles', 'scaled': 'Volatility-scaled quantiles',
+            'garch': 'GARCH(1,1)-scaled quantiles', 'har': 'HAR-RV-scaled quantiles'}[family]
 
 
 def style():
@@ -170,6 +171,80 @@ def yearly_actual_vs_prediction(predictions, frozen, horizon, years, extension_y
                         lw=1.5, label=f'{name} median: {label(selected.model.iat[0])}')
         ax.legend(loc='upper left', fontsize=9)
     fig.suptitle(f'{horizon.title()} out-of-sample actual vs prediction by year', fontsize=14)
+    return fig
+
+
+def _hover_panel(fig, row, data, finalists, prefix="", legend=True):
+    """Actual settlements and both finalists' medians in one subplot; hovering a date lists all three values."""
+    import plotly.graph_objects as go
+    if data.groupby('expiration').actual_level.nunique().gt(1).any():
+        raise ValueError('Models disagree about actual settlement values')
+    actual = data.drop_duplicates('expiration').sort_values('expiration')
+    fig.add_trace(go.Scatter(x=actual.expiration, y=actual.actual_level, name=f'{prefix}Actual settlement',
+                             mode='lines+markers', line=dict(color='#222222', width=1.5), marker=dict(size=4),
+                             legendgroup='actual', showlegend=legend, hovertemplate='%{y:,.2f}'), row=row, col=1)
+    for kind, color, dash in [('benchmark', BLUE, 'dash'), ('ml', ORANGE, 'dot')]:
+        key = model_key(finalists[kind])
+        selected = data.loc[data.model.eq(key)].sort_values('expiration')
+        if selected.empty:
+            continue
+        name = 'Benchmark' if kind == 'benchmark' else 'ML'
+        fig.add_trace(go.Scatter(x=selected.expiration, y=selected['median'], name=f'{prefix}{name} median: {label(key)}',
+                                 mode='lines', line=dict(color=color, width=1.5, dash=dash),
+                                 legendgroup=kind, showlegend=legend,
+                                 # The miss against the settled level is what the eye cannot read off the lines.
+                                 customdata=selected['median'] - selected.actual_level,
+                                 hovertemplate='%{y:,.2f} (%{customdata:+,.2f} vs actual)'), row=row, col=1)
+
+
+def _hover_figure(titles, heading, row_height):
+    from plotly.subplots import make_subplots
+    fig = make_subplots(rows=len(titles), cols=1, subplot_titles=titles, vertical_spacing=min(0.12, 0.3 / len(titles)))
+    fig.update_layout(title=heading, hovermode='x unified', template='simple_white', height=row_height * len(titles) + 120,
+                      legend=dict(orientation='h', yanchor='bottom', y=1.02, x=0))
+    fig.update_yaxes(title_text='SPX index points')
+    return fig
+
+
+def _hover_pending(fig, row, message):
+    axis = '' if row == 1 else str(row)
+    fig.add_annotation(text=message, showarrow=False, xref=f'x{axis} domain', yref=f'y{axis} domain', x=0.5, y=0.5)
+
+
+def interactive_actual_vs_prediction(predictions, frozen, stage):
+    """Plotly version of `actual_vs_prediction`: hover a date for the settlement and each finalist's median."""
+    stage_name = 'Development' if stage == 'development' else 'Final test'
+    panels = []
+    for horizon in ('weekly', 'monthly'):
+        data = predictions.loc[predictions.horizon.eq(horizon) & predictions.stage.eq(stage)] if len(predictions) else pd.DataFrame()
+        panels.append((horizon, data if horizon in frozen else pd.DataFrame()))
+    titles = [f'{h.title()} {stage_name.lower()}: actual vs predicted settlement'
+              + (f' (n={d.expiration.nunique()})' if len(d) else '') for h, d in panels]
+    fig = _hover_figure(titles, f'{stage_name}: out-of-sample actual vs prediction', 330)
+    for row, (horizon, data) in enumerate(panels, 1):
+        if data.empty:
+            _hover_pending(fig, row, 'Pending: completed evaluation required')
+        else:
+            # The two horizons have different finalists, so each legend entry names its horizon.
+            _hover_panel(fig, row, data, frozen[horizon], prefix=f'{horizon.title()} · ')
+    return fig
+
+
+def interactive_yearly_actual_vs_prediction(predictions, frozen, horizon, years, extension_years=()):
+    """Plotly version of `yearly_actual_vs_prediction`: one hoverable panel per calendar year."""
+    data = predictions.loc[predictions.horizon.eq(horizon)] if len(predictions) and horizon in frozen else pd.DataFrame()
+    panels = [(year, data.loc[data.expiration.dt.year.eq(year)] if len(data) else data) for year in years]
+    titles = [f'{horizon.title()} {year}: actual vs predicted settlement'
+              + (' (post-holdout extension, frozen models)' if year in extension_years else '')
+              + (f'; n={d.expiration.nunique()}' if len(d) else '') for year, d in panels]
+    fig = _hover_figure(titles, f'{horizon.title()} out-of-sample actual vs prediction by year', 300)
+    legend = True
+    for row, (year, year_data) in enumerate(panels, 1):
+        if year_data.empty:
+            _hover_pending(fig, row, 'Pending: no scored expirations')
+        else:
+            _hover_panel(fig, row, year_data, frozen[horizon], legend=legend)
+            legend = False  # the same three series repeat in every year
     return fig
 
 
