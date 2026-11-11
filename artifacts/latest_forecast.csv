@@ -1,3 +1,3 @@
 as_of_date,horizon,forecast_status,note,reference_date,expiration,settlement_type,reference_close,p10_level,median_level,p90_level,issued_at,model_version,p10_bps,median_bps,p90_bps,schema_version
-2026-11-09,weekly,issued,,2026-11-06,2026-11-13,SPXW_PM,7376.86,7097.78,7445.9,7684.36,2026-11-09T02:21:21.024932+00:00,0.1.0+2f38a9f21ed1,-385.7,93.2,408.4,1
-2026-11-09,monthly,no_forecast,"pending: no eligible contract with complete features for reference_date 2026-11-20; no spx, vix, vix9d value for 2026-11-20 yet",,,,,,,,,,,,,1
+2026-11-10,weekly,issued,,2026-11-06,2026-11-13,SPXW_PM,7376.86,7097.78,7445.9,7684.36,2026-11-09T02:21:21.024932+00:00,0.1.0+2f38a9f21ed1,-385.7,93.2,408.4,1
+2026-11-10,monthly,no_forecast,"pending: no eligible contract with complete features for reference_date 2026-11-20; no spx, vix, vix9d value for 2026-11-20 yet",,,,,,,,,,,,,1
