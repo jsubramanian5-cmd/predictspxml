@@ -25,11 +25,7 @@
       "family": "scaled"
     },
     "ml": {
-      "family": "xgb",
-      "max_depth": 1,
-      "min_child_weight": 20,
-      "n_estimators": 50,
-      "reg_lambda": 50
+      "family": "har"
     },
     "volatility_threshold": 15.88,
     "plan": {

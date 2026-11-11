@@ -1,0 +1,11 @@
+{
+  "dataset": "vix9d",
+  "source_url": "https://cdn-api.cboe.com/api/global/us_indices/daily_prices/VIX9D_History.csv",
+  "sha256": "a137dc05e65be8ea67be65f9f9c41e7955193eec364d673f80a631c9bdca1f2e",
+  "snapshot": "vix9d-a137dc05e65be8ea67be65f9f9c41e7955193eec364d673f80a631c9bdca1f2e.raw",
+  "import_path": "data/imports/VIX9D_History.csv",
+  "source_method": "user_supplied_download",
+  "provenance": "User-supplied file attributed to official download URL",
+  "retrieved_at": "2026-11-11T02:02:11.227778+00:00",
+  "published_at": null
+}

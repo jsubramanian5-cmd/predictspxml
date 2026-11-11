@@ -9,3 +9,5 @@ checked_at,horizon,timing_status,status
 2026-11-10 03:30:09.479515+00:00,monthly,not_yet_eligible,"pending: no eligible contract with complete features for reference_date 2026-11-20; no spx, vix, vix9d value for 2026-11-20 yet"
 2026-11-10 12:30:07.869680+00:00,weekly,not_yet_eligible,"pending: no eligible contract with complete features for reference_date 2026-11-20; no spx, vix, vix9d value for 2026-11-20 yet"
 2026-11-10 12:30:07.869680+00:00,monthly,not_yet_eligible,"pending: no eligible contract with complete features for reference_date 2026-11-20; no spx, vix, vix9d value for 2026-11-20 yet"
+2026-11-11 02:02:13.715228+00:00,weekly,not_yet_eligible,"pending: no eligible contract with complete features for reference_date 2026-11-20; no spx, vix, vix9d value for 2026-11-20 yet"
+2026-11-11 02:02:13.715228+00:00,monthly,not_yet_eligible,"pending: no eligible contract with complete features for reference_date 2026-11-20; no spx, vix, vix9d value for 2026-11-20 yet"

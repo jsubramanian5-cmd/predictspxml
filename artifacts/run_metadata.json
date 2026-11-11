@@ -15,12 +15,13 @@
   "configuration": {
     "start": "2015-01-01",
     "end": "2026-11-06",
-    "reference_date": "2026-11-06",
+    "reference_date": null,
     "raw": "C:\\Dev\\predictspxml\\data\\raw",
     "normalized": "C:\\Dev\\predictspxml\\data\\normalized",
     "imports": "C:\\Dev\\predictspxml\\data\\imports",
     "output": "C:\\Dev\\predictspxml\\artifacts",
     "seed": 42,
+    "live_cboe_spx": false,
     "refresh": false,
     "run_expensive_backtest": true,
     "timeout_seconds": 15,
@@ -360,34 +361,34 @@
     {
       "dataset": "spx",
       "source_url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=SP500",
-      "sha256": "e3d7566c49052717d5f4afd0dd50c0c7056f6e5859c5dc83d2f71437c17c2c77",
-      "snapshot": "spx-e3d7566c49052717d5f4afd0dd50c0c7056f6e5859c5dc83d2f71437c17c2c77.raw",
-      "import_path": "C:\\Dev\\indexoptions\\data\\imports\\SP500.csv",
+      "sha256": "28119315fd4457830812b909c648a5916060adcfebe20792fb631ffcb441780b",
+      "snapshot": "spx-28119315fd4457830812b909c648a5916060adcfebe20792fb631ffcb441780b.raw",
+      "import_path": "data/imports/SP500.csv",
       "source_method": "user_supplied_download",
       "provenance": "User-supplied file attributed to official download URL",
-      "retrieved_at": "2026-11-07T16:06:36.624434+00:00",
+      "retrieved_at": "2026-11-11T02:02:11.191874+00:00",
       "published_at": null
     },
     {
       "dataset": "vix",
       "source_url": "https://cdn-api.cboe.com/api/global/us_indices/daily_prices/VIX_History.csv",
-      "sha256": "7e647d50a872b4aa64deaef1dfd17b0e1e3b88887cedc4c1fa861d242ecb7383",
-      "snapshot": "vix-7e647d50a872b4aa64deaef1dfd17b0e1e3b88887cedc4c1fa861d242ecb7383.raw",
-      "import_path": "C:\\Dev\\indexoptions\\data\\imports\\VIX_History.csv",
+      "sha256": "0fbd2010663102746b54b12bf96ab0ca4add0c922aebc4dabb0a84cd9c8b0e63",
+      "snapshot": "vix-0fbd2010663102746b54b12bf96ab0ca4add0c922aebc4dabb0a84cd9c8b0e63.raw",
+      "import_path": "data/imports/VIX_History.csv",
       "source_method": "user_supplied_download",
       "provenance": "User-supplied file attributed to official download URL",
-      "retrieved_at": "2026-11-07T16:06:36.638086+00:00",
+      "retrieved_at": "2026-11-10T03:30:06.277612+00:00",
       "published_at": null
     },
     {
       "dataset": "vix9d",
       "source_url": "https://cdn-api.cboe.com/api/global/us_indices/daily_prices/VIX9D_History.csv",
-      "sha256": "98b2b7523f828e099446eebbc89f8422314ec0456b2085e161b781035ce15e55",
-      "snapshot": "vix9d-98b2b7523f828e099446eebbc89f8422314ec0456b2085e161b781035ce15e55.raw",
-      "import_path": "C:\\Dev\\indexoptions\\data\\imports\\VIX9D_History.csv",
+      "sha256": "a137dc05e65be8ea67be65f9f9c41e7955193eec364d673f80a631c9bdca1f2e",
+      "snapshot": "vix9d-a137dc05e65be8ea67be65f9f9c41e7955193eec364d673f80a631c9bdca1f2e.raw",
+      "import_path": "data/imports/VIX9D_History.csv",
       "source_method": "user_supplied_download",
       "provenance": "User-supplied file attributed to official download URL",
-      "retrieved_at": "2026-11-07T16:06:36.674096+00:00",
+      "retrieved_at": "2026-11-11T02:02:11.227778+00:00",
       "published_at": null
     },
     {
@@ -438,7 +439,7 @@
         "https://cdn.cboe.com/resources/schedule_update/2025/Cboe-to-Observe-National-Day-of-Mourning-on-Thursday-January-9-2025.pdf",
         "https://www.cboe.com/aboutcboe/xcal2018.pdf"
       ],
-      "retrieved_at": "2026-11-09T00:45:53.199389+00:00",
+      "retrieved_at": "2026-11-11T02:49:48.516184+00:00",
       "published_at": null,
       "sha256": "10d0e1fde0c768a9565788aa89b90060df8596f7b1ebd5ac37fe29dbd5ab258b",
       "snapshot": "calendar_import-10d0e1fde0c768a9565788aa89b90060df8596f7b1ebd5ac37fe29dbd5ab258b.raw"
@@ -470,10 +471,21 @@
         "https://www.cboe.com/index_settlement_values/get_sv_data/W/2025/",
         "https://www.cboe.com/index_settlement_values/get_sv_data/W/2026/"
       ],
-      "retrieved_at": "2026-11-09T00:45:53.205419+00:00",
+      "retrieved_at": "2026-11-11T02:49:48.522343+00:00",
       "published_at": null,
       "sha256": "f2555679c31f95f773cfecb403517ae2f34a26211c27297c96ef96b877245a89",
       "snapshot": "contracts_import-f2555679c31f95f773cfecb403517ae2f34a26211c27297c96ef96b877245a89.raw"
+    },
+    {
+      "dataset": "upcoming_contracts_import",
+      "source_url": "C:/Dev/predictspxml/data/imports/upcoming_contracts.csv",
+      "official_urls": [
+        "https://cdn.cboe.com/resources/options/Cboe2026OPTIONSCalendar.pdf"
+      ],
+      "retrieved_at": "2026-11-11T02:49:48.524188+00:00",
+      "published_at": null,
+      "sha256": "7e4026cea99aecc53108818b25bb345d00a3ca6485247aaaea8c1020cd45eb88",
+      "snapshot": "upcoming_contracts_import-7e4026cea99aecc53108818b25bb345d00a3ca6485247aaaea8c1020cd45eb88.raw"
     }
   ],
   "assumptions": [
@@ -544,14 +556,15 @@
         "c0db14dc5baa8adbcbef101d4f58b3ea814fbe410e1213048df416a16ea58caf",
         "89731079a3c41f68219f067939bb6c5a06590b2f6e17cfb179225571948e0049",
         "1232a09a26b1dc9e909a1ddbd5f4c6ea8f7bb439a6aae33c6dc3944c79e64933",
-        "e3d7566c49052717d5f4afd0dd50c0c7056f6e5859c5dc83d2f71437c17c2c77",
-        "7e647d50a872b4aa64deaef1dfd17b0e1e3b88887cedc4c1fa861d242ecb7383",
-        "98b2b7523f828e099446eebbc89f8422314ec0456b2085e161b781035ce15e55",
+        "28119315fd4457830812b909c648a5916060adcfebe20792fb631ffcb441780b",
+        "0fbd2010663102746b54b12bf96ab0ca4add0c922aebc4dabb0a84cd9c8b0e63",
+        "a137dc05e65be8ea67be65f9f9c41e7955193eec364d673f80a631c9bdca1f2e",
         "dc852599f45f7bc4a6c36e4fe34acb7f6caa48512cfc60118ece7c1fc5d5975c",
         "87850c9c010973e6f204e12bbdf2e2953dfda468a3cf1d143c7d825d36f028b7",
         "421a0699055b99ebc2dea6da53666939bc0918882d1f615da5664582a52b3c9e",
         "10d0e1fde0c768a9565788aa89b90060df8596f7b1ebd5ac37fe29dbd5ab258b",
-        "f2555679c31f95f773cfecb403517ae2f34a26211c27297c96ef96b877245a89"
+        "f2555679c31f95f773cfecb403517ae2f34a26211c27297c96ef96b877245a89",
+        "7e4026cea99aecc53108818b25bb345d00a3ca6485247aaaea8c1020cd45eb88"
       ]
     },
     "monthly": {
@@ -615,14 +628,15 @@
         "c0db14dc5baa8adbcbef101d4f58b3ea814fbe410e1213048df416a16ea58caf",
         "89731079a3c41f68219f067939bb6c5a06590b2f6e17cfb179225571948e0049",
         "1232a09a26b1dc9e909a1ddbd5f4c6ea8f7bb439a6aae33c6dc3944c79e64933",
-        "e3d7566c49052717d5f4afd0dd50c0c7056f6e5859c5dc83d2f71437c17c2c77",
-        "7e647d50a872b4aa64deaef1dfd17b0e1e3b88887cedc4c1fa861d242ecb7383",
-        "98b2b7523f828e099446eebbc89f8422314ec0456b2085e161b781035ce15e55",
+        "28119315fd4457830812b909c648a5916060adcfebe20792fb631ffcb441780b",
+        "0fbd2010663102746b54b12bf96ab0ca4add0c922aebc4dabb0a84cd9c8b0e63",
+        "a137dc05e65be8ea67be65f9f9c41e7955193eec364d673f80a631c9bdca1f2e",
         "dc852599f45f7bc4a6c36e4fe34acb7f6caa48512cfc60118ece7c1fc5d5975c",
         "87850c9c010973e6f204e12bbdf2e2953dfda468a3cf1d143c7d825d36f028b7",
         "421a0699055b99ebc2dea6da53666939bc0918882d1f615da5664582a52b3c9e",
         "10d0e1fde0c768a9565788aa89b90060df8596f7b1ebd5ac37fe29dbd5ab258b",
-        "f2555679c31f95f773cfecb403517ae2f34a26211c27297c96ef96b877245a89"
+        "f2555679c31f95f773cfecb403517ae2f34a26211c27297c96ef96b877245a89",
+        "7e4026cea99aecc53108818b25bb345d00a3ca6485247aaaea8c1020cd45eb88"
       ]
     }
   }
