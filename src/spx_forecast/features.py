@@ -25,16 +25,24 @@ def price_features(datasets, calendar):
     return daily
 
 
-def input_times(reference, datasets, calendar, live=False):
-    """Account for all 21 SPX prices and both reference-session volatility levels."""
+def by_date(datasets):
+    """Price inputs indexed by date once, for callers that check many reference sessions."""
+    return {name: datasets[name].set_index("date") for name in ("spx", "vix", "vix9d") if name in datasets}
+
+
+def input_times(reference, datasets, calendar, live=False, indexed=None):
+    """Account for all 21 SPX prices and both reference-session volatility levels.
+
+    `indexed` is `by_date(datasets)` when the caller already has it; otherwise it is built here."""
     dates = calendar.sessions[calendar.sessions <= reference][-21:]
     complete, assumed, times = len(dates) == 21, False, []
+    indexed = by_date(datasets) if indexed is None else indexed
     for name in ("spx", "vix", "vix9d"):
         wanted = dates if name == "spx" else [reference]
-        if name not in datasets:
+        if name not in indexed:
             complete = False
             continue
-        source = datasets[name].set_index("date")
+        source = indexed[name]
         for date in wanted:
             if date not in source.index or not np.isfinite(source.loc[date, "value"]) or source.loc[date, "value"] <= 0:
                 complete = False
@@ -60,9 +68,9 @@ def build_observations(schedule, daily, datasets, calendar):
     labels["expiration"] = pd.to_datetime(labels.expiration)
     obs = obs.merge(labels, on=["horizon", "expiration", "settlement_type"], how="left", validate="one_to_one")
     obs["target"] = 10000 * np.log(obs.settlement / obs.reference_close)
-    timing = []
+    timing, indexed = [], by_date(datasets)
     for row in obs.itertuples(index=False):
-        complete, assumed, times = input_times(row.reference_date, datasets, calendar)
+        complete, assumed, times = input_times(row.reference_date, datasets, calendar, indexed=indexed)
         ready = max([row.earliest_issue] + times) if complete and times else pd.NaT
         label_assumed = pd.isna(row.published_at)
         if pd.notna(row.settlement):

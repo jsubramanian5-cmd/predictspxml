@@ -198,7 +198,9 @@ def weekly_archive(path, store):
                 table = pd.DataFrame(payload)
                 table = table.loc[table.trading_symbol.astype(str).str.strip().eq("SPXW")]
                 frame = pd.DataFrame({"expiration": pd.to_datetime(table.expiration_date),
-                                      "settlement": pd.to_numeric(table.settlement_value),
+                                      # Annotated values go to the review file below, as in the HTML years.
+                                      "settlement": pd.to_numeric(table.settlement_value, errors="coerce"),
+                                      "source_value": table.settlement_value.astype(str),
                                       "horizon": "weekly", "settlement_type": "SPXW_PM"})
                 frame["published_at"] = pd.NaT
                 for field in ("source_url", "retrieved_at", "sha256"):
@@ -423,6 +425,8 @@ def collect(config):
         cboe = cboe.loc[cboe.date.between(pd.Timestamp(config.start), pd.Timestamp(config.end))].reset_index(drop=True)
         reconciliation = reconcile(datasets["spx"], cboe)
         datasets["spx"] = splice_cboe_tail(datasets["spx"], cboe)
+        # Kept whole for the live scorecard's weekly close proxy, which must stay a Cboe value after FRED catches up.
+        datasets["spx_cboe"] = cboe
         added = int(datasets["spx"].source.eq(CBOE_SOURCE).sum())
         issues.append({"dataset": "spx_reference", "status": "ok",
                        "reason": f"{added} SPX close(s) after FRED's last observation come from Cboe SPX_History.csv"})

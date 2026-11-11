@@ -62,6 +62,7 @@ def test_weekly_archive_reads_both_formats_and_quarantines_annotations(tmp_path)
         archive.writestr('2019.json', json.dumps(dict(data=html)))
         archive.writestr('2020.json', json.dumps(dict(data=[
             dict(trading_symbol='SPXW', expiration_date='2020-12-24', settlement_value=3703.06),
+            dict(trading_symbol='SPXW', expiration_date='2020-12-31', settlement_value='3756.07*'),
             dict(trading_symbol='XSP', expiration_date='2020-12-24', settlement_value=370.306)])))
     store = Store(config)
     frame = weekly_archive(path, store)
@@ -69,7 +70,8 @@ def test_weekly_archive_reads_both_formats_and_quarantines_annotations(tmp_path)
     assert frame.expiration.tolist() == [pd.Timestamp('2019-08-09'), pd.Timestamp('2020-12-24')]
     assert frame.published_at.isna().all()
     review = pd.read_csv(config.output/'weekly_archive_review.csv')
-    assert review.source_value.tolist() == ['2883.75*']
+    # Annotated values are quarantined from both the HTML and the JSON-list years.
+    assert review.source_value.tolist() == ['2883.75*', '3756.07*']
     assert all((config.raw/m['snapshot']).exists() for m in store.manifest)
     # Supplied source references must remain on the expected Cboe archive endpoint.
     entries[0]['source'] = 'https://example.com/2019'
@@ -254,6 +256,103 @@ def test_auto_reference_reports_last_listed_expiration_when_no_upcoming_contract
     assert status.status.str.startswith('pending: no verified').all()
     assert 'latest listed expiration is 2026-11-06' in status.status.iloc[0]
     assert 'latest listed expiration is 2026-10-16' in status.status.iloc[1]
+
+
+def test_input_times_gives_the_same_answer_with_pre_indexed_inputs(calendar, datasets):
+    from spx_forecast.features import by_date, input_times
+    indexed = by_date(datasets)
+    for reference in (pd.Timestamp('2024-03-22'), pd.Timestamp('2023-01-10')):  # complete, then inside the warm-up
+        assert input_times(reference, datasets, calendar, indexed=indexed) == input_times(reference, datasets, calendar)
+    assert input_times(pd.Timestamp('2024-03-22'), {}, calendar)[0] is False
+
+
+def _auto_state(schedule):
+    return dict(calendar=None, selected={}, statuses={}, observations={}, manifest=[], datasets={}, schedule=schedule)
+
+
+def _checked(path, when):
+    pd.DataFrame([dict(horizon=h, checked_at=pd.Timestamp(when), timing_status='x', status='x')
+                  for h in ('weekly', 'monthly')]).to_csv(path, index=False)
+
+
+def test_issue_window_missed_since_the_previous_check_is_reported_once(tmp_path):
+    from spx_forecast.forecast import FORECAST_COLUMNS
+    from spx_forecast.live import OK, SUPPRESSED, exit_code
+    from spx_forecast.workflow import forecast_once
+    config = Config(reference_date=None, output=tmp_path, raw=tmp_path/'raw',
+                    normalized=tmp_path/'normalized', imports=tmp_path/'imports')
+    config.prepare()
+    # Weekly 11-06 reference: window closes 2026-11-09 13:00 UTC. The monthly window closed on 10-19.
+    state = _auto_state(_schedule([
+        ('weekly', '2026-10-30', '2026-11-06'), ('weekly', '2026-11-06', '2026-11-13'),
+        ('weekly', '2026-11-13', '2026-11-20'), ('monthly', '2026-10-16', '2026-11-20')]))
+    status_path = tmp_path / 'forecast_status.csv'
+    # No earlier check on record: nothing can be called missed.
+    _, first = forecast_once(config, state, pd.Timestamp('2026-11-10T00:30:00Z'))
+    assert exit_code(first) == OK
+    # Last check was Friday night; the job then slept through the weekend window.
+    _checked(status_path, '2026-11-07T00:30:00Z')
+    _, status = forecast_once(config, state, pd.Timestamp('2026-11-10T00:30:00Z'))
+    weekly, monthly = status.set_index('horizon').status[['weekly', 'monthly']]
+    assert weekly.startswith('suppressed_missed_window: weekly contract expiring 2026-11-13 (reference 2026-11-06)')
+    assert '; next contract: ' in weekly
+    assert not monthly.startswith('suppressed')  # closed before the previous check: not news
+    assert exit_code(status) == SUPPRESSED
+    # The next run has already reported it.
+    _, later = forecast_once(config, state, pd.Timestamp('2026-11-10T12:30:00Z'))
+    assert exit_code(later) == OK
+    # A replay of an earlier time does not move the status file backwards.
+    forecast_once(config, state, pd.Timestamp('2026-11-08T00:30:00Z'))
+    assert pd.read_csv(status_path).checked_at.str.startswith('2026-11-10 12:30').all()
+    # A window that closed with its forecast issued is not a miss.
+    pd.DataFrame([dict(zip(FORECAST_COLUMNS, ['weekly', '2026-11-06', '2026-11-09T02:21:21+00:00', '2026-11-13',
+                                              'SPXW_PM', 7376.86, 7097.78, 7445.9, 7684.36, 'v', 'x']))]
+                 ).to_csv(tmp_path / 'forecasts.csv', index=False)
+    _checked(status_path, '2026-11-07T00:30:00Z')
+    _, issued = forecast_once(config, state, pd.Timestamp('2026-11-10T00:30:00Z'))
+    assert exit_code(issued) == OK
+
+
+def test_appending_a_forecast_leaves_issued_rows_byte_identical(tmp_path):
+    from spx_forecast.forecast import FORECAST_COLUMNS, append_forecast, read_forecasts
+    path = tmp_path / 'forecasts.csv'
+    # These levels do not survive pandas' default CSV parser unchanged.
+    levels = [7105.1956268263875, 7455.3214933874715, 7604.2252456449205]
+    first = dict(zip(FORECAST_COLUMNS, ['weekly', '2026-11-06', '2026-11-09T02:21:21+00:00', '2026-11-13', 'SPXW_PM',
+                                        7376.86, *levels, 'v1', 'x']))
+    append_forecast(path, first)
+    before = path.read_bytes()
+    append_forecast(path, {**first, 'reference_date': '2026-11-20', 'expiration': '2026-11-27'})
+    after = path.read_bytes()
+    assert after.startswith(before) and len(after.splitlines()) == 3
+    frame = read_forecasts(path)
+    assert list(frame.columns) == FORECAST_COLUMNS and list(frame.expiration) == ['2026-11-13', '2026-11-27']
+    assert frame.loc[0, ['lower', 'median', 'upper']].tolist() == levels
+    # A header-only file (written before the first forecast) gets a row, not a second header.
+    empty = tmp_path / 'empty.csv'
+    pd.DataFrame(columns=FORECAST_COLUMNS).to_csv(empty, index=False)
+    append_forecast(empty, first)
+    assert len(empty.read_bytes().splitlines()) == 2 and read_forecasts(empty).lower.item() == levels[0]
+    with pytest.raises(ValueError, match='lacks columns'):
+        append_forecast(empty, {**first, 'surprise': 1})
+
+
+def test_export_without_a_selection_keeps_the_last_backtest_outputs(tmp_path):
+    from spx_forecast.workflow import export
+    config = Config(output=tmp_path, raw=tmp_path/'raw', normalized=tmp_path/'normalized', imports=tmp_path/'imports')
+    config.prepare()
+    state = dict(development={}, final={}, selected={}, plans={}, statuses={}, manifest=[], observations={})
+    # With nothing on disk the pending placeholders are still written.
+    export(config, state)
+    assert json.loads((tmp_path / 'run_metadata.json').read_text())['selected'] == {}
+    kept = {'run_metadata.json': json.dumps({'selected': {'weekly': {'family': 'scaled'}}}),
+            'metrics.csv': 'horizon,stage\nweekly,final_test\n', 'backtest_predictions.csv': 'horizon\nweekly\n'}
+    for name, text in kept.items():
+        (tmp_path / name).write_text(text)
+    with pytest.warns(UserWarning, match='selected no model'):
+        combined, score = export(config, state)
+    assert combined.empty and score.empty
+    assert {name: (tmp_path / name).read_text() for name in kept} == kept
 
 
 def _standard():

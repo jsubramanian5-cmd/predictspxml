@@ -47,10 +47,33 @@ DAILY_COLUMNS = ["as_of_date", "horizon", "forecast_status", "note", "reference_
                  "issued_at", "model_version", "p10_bps", "median_bps", "p90_bps", "schema_version"]
 
 
-def daily_forecast_table(forecasts, statuses, as_of):
+def settlement_time(expiration, settlement_type, timezone="America/New_York"):
+    """When a contract's settlement value is fixed: the 09:30 open for SET AM, the 16:00 close otherwise."""
+    offset = pd.Timedelta(hours=9, minutes=30) if settlement_type == "SET_AM" else pd.Timedelta(hours=16)
+    return (pd.Timestamp(expiration).normalize() + offset).tz_localize(timezone).tz_convert("UTC")
+
+
+def write_csv(frame, path):
+    """Replace `path` in one step, so the viewer and the strategy never read a half-written file."""
+    path = Path(path)
+    temporary = path.with_suffix(".tmp")
+    frame.to_csv(temporary, index=False)
+    temporary.replace(path)
+
+
+def daily_forecast_table(forecasts, statuses, as_of, issued_by=None):
     """Consumer-facing end-of-day table: every issued forecast whose contract has not expired, plus one
-    explanatory row for each horizon that has none (so a missing forecast is never silent)."""
+    explanatory row for each horizon that has none (so a missing forecast is never silent).
+
+    `issued_by` is the run's clock: a replay of an earlier time must not list forecasts issued after it, and a
+    contract that has already settled on its expiration day (SET AM at the open, SPXW PM at the close) is no
+    longer listed. Without it the check is by date only."""
     as_of = pd.Timestamp(as_of).normalize()
+    if issued_by is not None:
+        clock = pd.Timestamp(issued_by)
+        settles = [settlement_time(e, s) for e, s in zip(forecasts.expiration, forecasts.settlement_type)]
+        forecasts = forecasts.loc[(pd.to_datetime(forecasts.actual_issue_time, utc=True) <= clock)
+                                  & (pd.Series(settles, index=forecasts.index, dtype="datetime64[ns, UTC]") > clock)]
     rows = []
     for horizon in ("weekly", "monthly"):
         mine = forecasts.loc[forecasts.horizon.eq(horizon) & (pd.to_datetime(forecasts.expiration) >= as_of)]
@@ -76,15 +99,30 @@ def daily_forecast_table(forecasts, statuses, as_of):
 
 
 def write_daily_forecast(output, forecasts, statuses, now, timezone="America/New_York"):
-    """Write artifacts/daily/forecast_YYYY-MM-DD.csv (New York date) and artifacts/latest_forecast.csv."""
+    """Write artifacts/daily/forecast_YYYY-MM-DD.csv (New York date) and artifacts/latest_forecast.csv.
+
+    latest_forecast.csv only moves forward: a replay of an earlier day writes its dated file and leaves it alone."""
     day = pd.Timestamp(now).tz_convert(timezone).normalize().tz_localize(None)
-    table = daily_forecast_table(forecasts, statuses, day)
+    table = daily_forecast_table(forecasts, statuses, day, issued_by=now)
     folder = Path(output) / "daily"
     folder.mkdir(parents=True, exist_ok=True)
     dated = folder / f"forecast_{day.date()}.csv"
-    table.to_csv(dated, index=False)
-    table.to_csv(Path(output) / "latest_forecast.csv", index=False)
+    write_csv(table, dated)
+    latest = Path(output) / "latest_forecast.csv"
+    if not latest_is_newer(latest, day):
+        write_csv(table, latest)
     return dated, table
+
+
+def latest_is_newer(path, day):
+    """True when latest_forecast.csv already describes a later day than `day`."""
+    if not path.exists():
+        return False
+    try:
+        current = pd.to_datetime(pd.read_csv(path, usecols=["as_of_date"]).as_of_date, errors="coerce").max()
+    except (ValueError, pd.errors.EmptyDataError):
+        return False
+    return pd.notna(current) and current > day
 
 
 SCORECARD_COLUMNS = ["horizon", "reference_date", "expiration", "issued_at", "reference_close", "p10_level",
@@ -100,10 +138,18 @@ def live_scorecard(forecasts, settlements, closes):
     settles to the index close, so until the official record is imported the Cboe SPX close for that day is used
     and labelled `cboe_close_proxy`. Monthly SET AM settles to the opening-based SOQ, never the close, so a
     monthly forecast stays `awaiting_settlement` until its official record exists.
+
+    `closes` must be Cboe closes (date, value). If it carries a `source` column (the spliced live SPX series)
+    only its Cboe rows are used, so a FRED value is never scored under the Cboe label; None means no proxy.
     """
     from .backtest import interval_score
+    from .reference import CBOE_SOURCE
     rows = []
     official = settlements.assign(expiration=pd.to_datetime(settlements.expiration).dt.normalize())
+    if closes is None:
+        closes = pd.DataFrame({"date": pd.to_datetime([]), "value": []})
+    if "source" in closes:
+        closes = closes.loc[closes.source.eq(CBOE_SOURCE)]
     closes = closes.loc[closes.value > 0].set_index("date").value
     for f in forecasts.sort_values(["horizon", "expiration"]).itertuples():
         expiration = pd.Timestamp(f.expiration).normalize()
@@ -154,11 +200,12 @@ def backtest_baseline(output, selected):
     path = Path(output) / "metrics.csv"
     if not path.exists():
         return {}
+    from .backtest import model_key
     metrics = pd.read_csv(path)
     baseline = {}
     for horizon, config in selected.items():
         row = metrics.loc[metrics.horizon.eq(horizon) & metrics.stage.eq("final_test") & metrics.regime.eq("all")
-                          & metrics.model.eq(json.dumps(config, sort_keys=True, separators=(",", ":")))]
+                          & metrics.model.eq(model_key(config))]
         if len(row):
             baseline[horizon] = (round(float(row.coverage.iloc[0]), 3), round(float(row.interval_score_bps.iloc[0]), 1))
     return baseline
@@ -166,7 +213,7 @@ def backtest_baseline(output, selected):
 
 def write_scorecard(output, forecasts, settlements, closes, selected=None):
     card = live_scorecard(forecasts, settlements, closes)
-    card.to_csv(Path(output) / "live_scorecard.csv", index=False)
+    write_csv(card, Path(output) / "live_scorecard.csv")
     summary = scorecard_summary(card, backtest_baseline(output, selected or {}))
-    summary.to_csv(Path(output) / "live_scorecard_summary.csv", index=False)
+    write_csv(summary, Path(output) / "live_scorecard_summary.csv")
     return card, summary

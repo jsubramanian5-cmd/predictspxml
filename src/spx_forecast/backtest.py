@@ -55,15 +55,17 @@ def training_rows(observations, issue_time):
                             (observations.issue_time < issue_time)].copy()
 
 
-def history_plan(horizon, observations, contracts, calendar, datasets, end):
-    """Reject incomplete periods instead of silently shortening the requested test."""
+def history_plan(horizon, observations, contracts, calendar, datasets, end, daily=None):
+    """Reject incomplete periods instead of silently shortening the requested test.
+
+    `daily` is `price_features(datasets, calendar)` when the caller has already computed it."""
     last_year = pd.Timestamp(end).year - 1
     test_start = pd.Timestamp(last_year - 1, 1, 1)
     test_end = pd.Timestamp(last_year, 12, 31)
     reasons = []
     if observations.empty:
         return {"status": "pending", "reason": "No usable verified observations"}
-    warm_features = price_features(datasets, calendar)
+    warm_features = price_features(datasets, calendar) if daily is None else daily
     required_features = [c for c in FEATURES if c not in ("calendar_days", "remaining_sessions")]
     complete_dates = warm_features.loc[warm_features[required_features].notna().all(axis=1)].index
     if not len(complete_dates):

@@ -31,7 +31,10 @@ Steps 1-2 only need to be repeated, not changed, between runs; a rerun never ove
 | 0 | Ran cleanly. `pending`/`waiting_for_inputs`/`not_yet_eligible` are normal between contracts. |
 | 1 | Error (details in `.runtime/live_forecast.log`). Includes a verified calendar that has already ended. |
 | 2 | A price refresh failed, overlapping history changed, or the verified calendar ends within 60 days. Forecasts still ran with what was on disk. |
-| 3 | A horizon missed its issue window (`suppressed_*`). Worth an alert. |
+| 3 | A horizon missed its issue window (`suppressed_*`). Worth an alert. Returned once, by the first run after the window closed without a forecast (`suppressed_missed_window: ...; next contract: ...`); later runs go back to reporting the next contract. |
+
+A `--now` replay of an earlier time writes that day's `artifacts/daily/` file with only the forecasts issued by
+then, and leaves the newer `latest_forecast.csv` and `forecast_status.csv` in place.
 
 ## Reference close source
 
@@ -43,6 +46,8 @@ it covers; the live setting is `Config.live_cboe_spx` (off by default, on in the
 
 - Each published forecast records `reference_close_source` (`fred` or `cboe_spx_history`) in its model JSON;
   the `source` column of `data/normalized/spx.parquet` marks each row.
+- The full Cboe series is also kept as `data/normalized/spx_cboe.parquet`. The live scorecard's weekly
+  `cboe_close_proxy` is read from it, so that value stays a Cboe close after FRED catches up.
 - When FRED catches up, both series are compared. Differences above 0.005 points are written to
   `artifacts/spx_reconciliation.csv`; one dated within the last 30 days makes the run exit 2 with
   `SPX RECONCILIATION:` in the log. A forecast already issued is never revised. Historically 2,504 of 2,513
@@ -67,6 +72,8 @@ schtasks /Create /SC WEEKLY /D MON,TUE,WED,THU,FRI /ST 07:30 /TN "spx-live-forec
 ## Outputs to monitor
 
 - `artifacts/latest_forecast.csv` and `artifacts/daily/forecast_YYYY-MM-DD.csv`: what is currently issued.
+  A contract leaves the table once it has settled on its expiration day (09:30 New York for `SET_AM`, 16:00 for
+  `SPXW_PM`), so a Friday evening run no longer lists that day's weekly. Both files are replaced in one step.
   **Columns (schema version 1).** New columns are only ever appended and `schema_version` is bumped; existing
   columns are never renamed, reordered or removed, so a downstream reader keyed on names or positions keeps working.
 

@@ -1,5 +1,6 @@
 import hashlib
 import json
+import os
 import pickle
 
 import pandas as pd
@@ -27,8 +28,8 @@ def publish_forecast(horizon, observations, selected, config, datasets, calendar
         raise ValueError("Ambiguous forecast reference")
     row = rows.iloc[0]
     path = config.output / "forecasts.csv"
-    existing = pd.read_csv(path) if path.exists() else pd.DataFrame(columns=FORECAST_COLUMNS)
-    match = (existing.horizon.eq(horizon) & existing.reference_date.eq(str(desired.date())) &
+    existing = read_forecasts(path)
+    match =(existing.horizon.eq(horizon) & existing.reference_date.eq(str(desired.date())) &
              existing.expiration.eq(str(row.expiration.date())))
     if match.any():
         return existing.loc[match].iloc[0].to_dict(), "already_published"
@@ -61,11 +62,37 @@ def publish_forecast(horizon, observations, selected, config, datasets, calendar
                   expiration=str(row.expiration.date()), settlement_type=row.settlement_type,
                   reference_close=row.reference_close, lower=levels[0], median=levels[1], upper=levels[2],
                   model_version=version, timing_status="receipt_verified_publication_unknown" if assumed else "publication_verified")
-    result = pd.DataFrame([record]) if existing.empty else pd.concat([existing, pd.DataFrame([record])], ignore_index=True)
-    temporary = path.with_suffix(".tmp")
-    result.to_csv(temporary, index=False)
-    temporary.replace(path)
+    append_forecast(path, record)
     return record, "published"
+
+
+def read_forecasts(path):
+    """Issued forecasts with exactly the float values that were written (the default CSV parser is not exact)."""
+    if not path.exists() or not path.stat().st_size:
+        return pd.DataFrame(columns=FORECAST_COLUMNS)
+    return pd.read_csv(path, float_precision="round_trip")
+
+
+def append_forecast(path, record):
+    """Add one issued row, leaving the bytes of every earlier row untouched.
+
+    Re-serializing the whole table would pass issued values through a CSV read/write cycle, which can change
+    their last digit. The new file is built beside the old one and swapped in, so a reader never sees half a row.
+    """
+    previous = path.read_bytes() if path.exists() else b""
+    if previous:
+        columns = list(pd.read_csv(path, nrows=0).columns)
+        if set(record) - set(columns):
+            raise ValueError(f"forecasts.csv lacks columns {sorted(set(record) - set(columns))}")
+        newline = "\r\n" if b"\r\n" in previous else "\n"
+        if not previous.endswith(b"\n"):
+            previous += newline.encode()
+    else:
+        columns, newline = FORECAST_COLUMNS, os.linesep
+    row = pd.DataFrame([record]).reindex(columns=columns).to_csv(index=False, header=not previous, lineterminator=newline)
+    temporary = path.with_suffix(".tmp")
+    temporary.write_bytes(previous + row.encode("utf-8"))
+    temporary.replace(path)
 
 
 def reference_source(datasets, reference_date):

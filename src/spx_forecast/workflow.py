@@ -2,13 +2,14 @@
 import dataclasses
 import json
 import pickle
+import warnings
 
 import pandas as pd
 
 from .backtest import develop, expanding, history_plan, holdout, metrics, model_key, promote, training_rows
 from .calendar import OfficialCalendar, contract_observations, availability
 from .features import FEATURES, build_observations, input_times, price_features
-from .forecast import FORECAST_COLUMNS, dependency_versions, publish_forecast
+from .forecast import FORECAST_COLUMNS, dependency_versions, publish_forecast, read_forecasts
 from .ingestion import audit, collect
 from .models import QuantileModel, candidates
 from .upcoming import merge_contracts
@@ -42,7 +43,8 @@ def prepare(config):
         if missing:
             plans[horizon] = dict(status="pending", reason="Missing verified inputs: " + ", ".join(missing))
         else:
-            plans[horizon] = history_plan(horizon, observations[horizon], datasets["contracts"], calendar, datasets, config.end)
+            plans[horizon] = history_plan(horizon, observations[horizon], datasets["contracts"], calendar, datasets,
+                                          config.end, daily=daily)
     audit_table = audit(datasets, calendar.sessions if calendar else None, observations)
     for horizon, obs in observations.items():
         if not obs.empty:
@@ -149,20 +151,60 @@ def upcoming_reference_date(schedule, horizon, now):
     return None if rows.empty else pd.Timestamp(rows.sort_values("expiration").reference_date.iloc[0])
 
 
+MISSED = "suppressed_missed_window"
+
+
+def last_checked(path):
+    """When each horizon was last checked, from the status file the coming check is about to replace."""
+    if not path.exists():
+        return {}
+    try:
+        frame = pd.read_csv(path)
+    except pd.errors.EmptyDataError:
+        return {}
+    if not {"horizon", "checked_at"} <= set(frame):
+        return {}
+    times = pd.to_datetime(frame.checked_at, utc=True, errors="coerce")
+    return {h: t for h, t in zip(frame.horizon, times) if pd.notna(t)}
+
+
+def missed_windows(schedule, horizon, issued, since, now):
+    """Contracts whose issue window closed in (since, now] without a forecast.
+
+    `upcoming_reference_date` moves on as soon as a cutoff passes, so a window that closed unissued would
+    otherwise be reported as an ordinary wait for the following contract. Only windows that closed since the
+    previous check count: each miss is reported once, and contracts from before the first run never are.
+    """
+    if schedule.empty or since is None or "cutoff" not in schedule:
+        return []
+    rows = schedule.loc[schedule.horizon.eq(horizon)]
+    cutoff = pd.to_datetime(rows.cutoff, utc=True)
+    rows = rows.loc[(cutoff > since) & (cutoff <= pd.Timestamp(now))]
+    done = set(pd.to_datetime(issued.loc[issued.horizon.eq(horizon), "expiration"]).dt.normalize())
+    return [f"{MISSED}: {horizon} contract expiring {pd.Timestamp(row.expiration).date()} (reference "
+            f"{pd.Timestamp(row.reference_date).date()}) passed its issue cutoff without a forecast"
+            for row in rows.sort_values("expiration").itertuples() if pd.Timestamp(row.expiration).normalize() not in done]
+
+
 def forecast_once(config, state, now=None):
     now = pd.Timestamp.now(tz="UTC") if now is None else pd.Timestamp(now)
     records, statuses = [], []
+    previous_checks = last_checked(config.output / "forecast_status.csv")
+    issued = read_forecasts(config.output / "forecasts.csv")
     for horizon in ("weekly", "monthly"):
         calendar = state["calendar"]
         schedule = state["schedule"]
+        missed = []
         if config.reference_date is None:
+            missed = missed_windows(schedule, horizon, issued, previous_checks.get(horizon), now)
             reference = upcoming_reference_date(schedule, horizon, now)
             if reference is None:
                 latest = schedule.loc[schedule.horizon.eq(horizon), "expiration"].max() if not schedule.empty else None
                 reason = (f"pending: no verified {horizon} contract expires after {now.date()}; latest listed expiration is "
                           f"{pd.Timestamp(latest).date() if latest is not None and pd.notna(latest) else 'none'} "
                           "(extend data/imports/contracts.csv with the next official listing)")
-                statuses.append(dict(horizon=horizon, checked_at=now, timing_status=reason, status=reason))
+                statuses.append(dict(horizon=horizon, checked_at=now, timing_status=reason,
+                                     status="; next contract: ".join(missed + [reason])))
                 continue
             horizon_config = dataclasses.replace(config, reference_date=str(reference.date()))
         else:
@@ -181,12 +223,28 @@ def forecast_once(config, state, now=None):
                                               horizon_config, state["datasets"], calendar, state["manifest"], now)
         if record:
             records.append(record)
-        statuses.append(dict(horizon=horizon, checked_at=now, timing_status=timing_status, status=status))
+        # The missed contract leads the status so the run exits 3; the timing column stays about the next contract.
+        statuses.append(dict(horizon=horizon, checked_at=now, timing_status=timing_status,
+                             status="; next contract: ".join(missed + [status])))
     if not (config.output / "forecasts.csv").exists():
         pd.DataFrame(columns=FORECAST_COLUMNS).to_csv(config.output / "forecasts.csv", index=False)
     frame = pd.DataFrame(statuses)
-    frame.to_csv(config.output / "forecast_status.csv", index=False)
+    # A replay of an earlier time reports its statuses but leaves the newer status file in place: its
+    # checked_at is also where the next real run starts looking for missed issue windows.
+    if not any(checked > now for checked in previous_checks.values()):
+        frame.to_csv(config.output / "forecast_status.csv", index=False)
     return pd.DataFrame(records, columns=FORECAST_COLUMNS), frame
+
+
+def previous_selection(output):
+    """Models selected by the last completed backtest, as recorded on disk ({} when there is none)."""
+    path = output / "run_metadata.json"
+    if not path.exists():
+        return {}
+    try:
+        return json.loads(path.read_text()).get("selected") or {}
+    except json.JSONDecodeError:
+        return {}
 
 
 def export(config, state):
@@ -197,13 +255,19 @@ def export(config, state):
                           'median', 'upper', 'crossed', 'model', 'stage', 'regime', 'timing_assumed',
                           'training_assumed_inputs', 'training_assumed_labels', 'training_count', 'training_cutoff']
     combined = pd.concat(nonempty, ignore_index=True) if nonempty else pd.DataFrame(columns=prediction_columns)
-    combined.to_csv(config.output / "backtest_predictions.csv", index=False)
     score = metrics(combined)
     if score.empty:
         score = pd.DataFrame(columns=['horizon', 'stage', 'model', 'regime', 'interval_score_bps', 'coverage',
                                      'lower_miss_rate', 'upper_miss_rate', 'median_width_points',
                                      'median_absolute_error_points', 'median_absolute_error_bps', 'count',
                                      'coverage_wilson_lower', 'coverage_wilson_upper', 'crossing_frequency'])
+    if not state["selected"] and previous_selection(config.output):
+        # The live run forecasts with the selection in run_metadata.json and scores against metrics.csv. A run
+        # that evaluated nothing (backtest disabled or every horizon pending) must not replace them with blanks.
+        warnings.warn("This run selected no model: the previous backtest's run_metadata.json, metrics.csv and "
+                      "backtest_predictions.csv were kept unchanged.", stacklevel=2)
+        return combined, score
+    combined.to_csv(config.output / "backtest_predictions.csv", index=False)
     score.to_csv(config.output / "metrics.csv", index=False)
     trained = {}
     for horizon, selected in state["selected"].items():

@@ -158,6 +158,72 @@ def test_daily_table_lists_active_forecasts_and_explains_missing_ones(tmp_path):
     assert pd.read_csv(path).shape == (2, len(DAILY_COLUMNS))
 
 
+def test_replay_lists_only_forecasts_issued_by_then_and_never_regresses_latest(tmp_path):
+    from spx_forecast.live import write_daily_forecast
+    forecasts = _forecasts([
+        ('weekly', '2026-11-06', '2026-11-09T01:52:20+00:00', '2026-11-13', 'SPXW_PM', 7376.86, 7097.7794, 7445.9049, 7684.3619, 'v1', 'x'),
+        ('weekly', '2026-10-30', '2026-11-03T01:00:00+00:00', '2026-11-06', 'SPXW_PM', 7353.73, 7000.0, 7300.0, 7600.0, 'v0', 'x')])
+    statuses = pd.DataFrame([dict(horizon='weekly', status='waiting_for_inputs'),
+                             dict(horizon='monthly', status='pending: not yet eligible')])
+    write_daily_forecast(tmp_path, forecasts, statuses, pd.Timestamp('2026-11-10T02:30:00Z'))
+    latest = (tmp_path / 'latest_forecast.csv').read_bytes()
+    # 00:30 UTC on 11-03 is the evening of 11-02 in New York, before either forecast existed.
+    path, table = write_daily_forecast(tmp_path, forecasts, statuses, pd.Timestamp('2026-11-03T00:30:00Z'))
+    assert path.name == 'forecast_2026-11-02.csv'
+    assert list(table.forecast_status) == ['no_forecast', 'no_forecast'] and table.note.iloc[0] == 'waiting_for_inputs'
+    # An hour and a half later the 11-06 contract's forecast exists; the one issued on 11-09 still does not.
+    _, table = write_daily_forecast(tmp_path, forecasts, statuses, pd.Timestamp('2026-11-03T02:00:00Z'))
+    assert list(table.loc[table.forecast_status.eq('issued'), 'expiration']) == ['2026-11-06']
+    assert (tmp_path / 'latest_forecast.csv').read_bytes() == latest
+    # A later day moves latest forward as usual.
+    write_daily_forecast(tmp_path, forecasts, statuses, pd.Timestamp('2026-11-11T02:30:00Z'))
+    assert pd.read_csv(tmp_path / 'latest_forecast.csv').as_of_date.eq('2026-11-10').all()
+
+
+def test_settled_contracts_leave_the_daily_table_on_expiration_day(tmp_path):
+    from spx_forecast.live import daily_forecast_table, write_daily_forecast
+    forecasts = _forecasts([
+        ('weekly', '2026-11-06', '2026-11-09T01:52:20+00:00', '2026-11-13', 'SPXW_PM', 7376.86, 7097.78, 7445.9, 7684.36, 'v1', 'x'),
+        ('monthly', '2026-10-16', '2026-10-19T02:00:00+00:00', '2026-11-20', 'SET_AM', 7500.0, 7000.0, 7500.0, 8000.0, 'v1', 'x')])
+    statuses = pd.DataFrame([dict(horizon='weekly', status='waiting_for_inputs'),
+                             dict(horizon='monthly', status='pending')])
+
+    def issued(now):
+        table = daily_forecast_table(forecasts, statuses, pd.Timestamp(now).tz_convert('America/New_York').date(), now)
+        return list(table.loc[table.forecast_status.eq('issued'), 'horizon'])
+    # Friday 11-13: the PM-settled weekly is live at 14:00 New York and gone after the 16:00 close.
+    assert issued(pd.Timestamp('2026-11-13T19:00:00Z')) == ['weekly', 'monthly']
+    assert issued(pd.Timestamp('2026-11-14T01:00:00Z')) == ['monthly']
+    # Friday 11-20: the AM-settled monthly is live at 08:00 New York and gone once the open has printed.
+    assert issued(pd.Timestamp('2026-11-20T13:00:00Z')) == ['monthly']
+    assert issued(pd.Timestamp('2026-11-20T15:00:00Z')) == []
+    # The horizon then gets its explanatory row, and no temporary file is left beside the outputs.
+    _, table = write_daily_forecast(tmp_path, forecasts, statuses, pd.Timestamp('2026-11-14T01:00:00Z'))
+    assert table.loc[table.horizon.eq('weekly'), ['forecast_status', 'note']].values.tolist() == [['no_forecast', 'waiting_for_inputs']]
+    assert not list(tmp_path.rglob('*.tmp'))
+
+
+def test_close_proxy_uses_only_cboe_closes_and_baseline_matches_model_key(tmp_path):
+    from spx_forecast.backtest import model_key
+    from spx_forecast.live import CLOSE_PROXY, backtest_baseline, live_scorecard
+    from spx_forecast.reference import CBOE_SOURCE, FRED_SOURCE
+    forecasts = _forecasts([
+        ('weekly', '2026-10-30', '2026-11-03T02:00:00+00:00', '2026-11-06', 'SPXW_PM', 7353.73, 7000.0, 7300.0, 7400.0, 'v', 'x'),
+        ('weekly', '2026-11-06', '2026-11-09T02:21:00+00:00', '2026-11-13', 'SPXW_PM', 7376.86, 7097.78, 7445.90, 7684.36, 'v', 'x')])
+    settlements = pd.DataFrame(columns=['horizon', 'expiration', 'settlement_type', 'settlement'])
+    # The spliced live series: FRED has caught up to 11-06, Cboe still supplies 11-13.
+    spliced = pd.DataFrame({'date': pd.to_datetime(['2026-11-06', '2026-11-13']), 'value': [7376.9, 7800.0],
+                            'source': [FRED_SOURCE, CBOE_SOURCE]})
+    card = live_scorecard(forecasts, settlements, spliced).set_index('expiration')
+    assert card.loc['2026-11-06', 'status'] == 'awaiting_settlement'  # a FRED close is never the Cboe proxy
+    assert card.loc['2026-11-13', 'actual_source'] == CLOSE_PROXY
+    assert live_scorecard(forecasts, settlements, None).status.eq('awaiting_settlement').all()
+    selected = {'weekly': {'family': 'linear', 'alpha': 0.1}}
+    pd.DataFrame([dict(horizon='weekly', stage='final_test', regime='all', model=model_key(selected['weekly']),
+                       coverage=0.7834, interval_score_bps=662.49)]).to_csv(tmp_path / 'metrics.csv', index=False)
+    assert backtest_baseline(tmp_path, selected) == {'weekly': (0.783, 662.5)}
+
+
 def test_scorecard_scores_when_settled_uses_proxy_only_for_weekly_and_summarises():
     import numpy as np
     from spx_forecast.live import CLOSE_PROXY, OFFICIAL, live_scorecard, scorecard_summary
