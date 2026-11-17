@@ -1,0 +1,3 @@
+as_of_date,horizon,forecast_status,note,reference_date,expiration,settlement_type,reference_close,p10_level,median_level,p90_level,issued_at,model_version,p10_bps,median_bps,p90_bps,schema_version
+2026-11-16,weekly,no_forecast,"pending: no eligible contract with complete features for reference_date 2026-11-20; no spx, vix, vix9d value for 2026-11-20 yet",,,,,,,,,,,,,1
+2026-11-16,monthly,no_forecast,"pending: no eligible contract with complete features for reference_date 2026-11-20; no spx, vix, vix9d value for 2026-11-20 yet",,,,,,,,,,,,,1

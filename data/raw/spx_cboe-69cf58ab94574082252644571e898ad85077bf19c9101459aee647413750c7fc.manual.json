@@ -1,0 +1,11 @@
+{
+  "dataset": "spx_cboe",
+  "source_url": "https://cdn-api.cboe.com/api/global/us_indices/daily_prices/SPX_History.csv",
+  "sha256": "69cf58ab94574082252644571e898ad85077bf19c9101459aee647413750c7fc",
+  "snapshot": "spx_cboe-69cf58ab94574082252644571e898ad85077bf19c9101459aee647413750c7fc.raw",
+  "import_path": "data/imports/SPX_History.csv",
+  "source_method": "user_supplied_download",
+  "provenance": "User-supplied file attributed to official download URL",
+  "retrieved_at": "2026-11-13T03:30:06.296408+00:00",
+  "published_at": null
+}
