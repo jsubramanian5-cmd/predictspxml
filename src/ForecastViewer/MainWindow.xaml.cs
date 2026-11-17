@@ -246,6 +246,34 @@ public partial class MainWindow : Window
         return result;
     }
 
+    /// <summary>Daily SPX closes from data/imports: FRED SP500.csv, overridden by Cboe SPX_History.csv where both exist.</summary>
+    private Dictionary<DateTime, double> LoadSpxCloses()
+    {
+        var result = new Dictionary<DateTime, double>();
+        var artifacts = _dailyDir == null ? null : Directory.GetParent(_dailyDir)?.FullName;
+        var root = artifacts == null ? null : Directory.GetParent(artifacts)?.FullName;
+        if (root == null) return result;
+
+        var culture = System.Globalization.CultureInfo.InvariantCulture;
+        foreach (var (file, format) in new[] { ("SP500.csv", "yyyy-MM-dd"), ("SPX_History.csv", "MM/dd/yyyy") })
+        {
+            var path = Path.Combine(root, "data", "imports", file);
+            if (!File.Exists(path)) continue;
+            try
+            {
+                foreach (var r in Csv.Read(path).Skip(1))
+                {
+                    if (r.Count < 2) continue;
+                    if (!DateTime.TryParseExact(r[0], format, culture, System.Globalization.DateTimeStyles.None, out var d)) continue;
+                    if (!double.TryParse(r[1], System.Globalization.NumberStyles.Float, culture, out var v)) continue;
+                    result[d] = v;
+                }
+            }
+            catch (IOException) { }
+        }
+        return result;
+    }
+
     private void SaveTrades()
     {
         var path = TradesPath();
@@ -496,6 +524,12 @@ public partial class MainWindow : Window
     {
         var rows = allRows.Where(r => r.Horizon == horizon)
                           .OrderByDescending(r => r.AsOfDate).ToList();
+        var closes = LoadSpxCloses();
+        foreach (var r in rows)
+        {
+            r.Settlement = _settlements.GetValueOrDefault(SettlementKey(r.Horizon, r.Expiration));
+            r.CloseThatDay = closes.TryGetValue(r.AsOfDate.Date, out var c) ? c : null;
+        }
         var latest = rows.FirstOrDefault();
         var latestIssued = rows.FirstOrDefault(r => r.IsIssued);
 
@@ -522,8 +556,13 @@ public partial class MainWindow : Window
         grid.Columns.Add(Col("Type", nameof(ForecastRow.SettlementType)));
         grid.Columns.Add(Col("Ref close", nameof(ForecastRow.ReferenceClose), "N2"));
         grid.Columns.Add(Col("P10", nameof(ForecastRow.P10), "N2"));
-        grid.Columns.Add(Col("Median", nameof(ForecastRow.Median), "N2"));
+        grid.Columns.Add(Col("Predicted (median)", nameof(ForecastRow.Median), "N2"));
         grid.Columns.Add(Col("P90", nameof(ForecastRow.P90), "N2"));
+        grid.Columns.Add(Col("Close that day", nameof(ForecastRow.CloseThatDay), "N2"));
+        grid.Columns.Add(Col("Settled at expiry", nameof(ForecastRow.Actual), "N2"));
+        grid.Columns.Add(Col("Settled - predicted", nameof(ForecastRow.ErrorPoints), "+0.00;-0.00;0.00"));
+        grid.Columns.Add(Col("In P10-P90", nameof(ForecastRow.InsideRange)));
+        grid.Columns.Add(Col("Settled source", nameof(ForecastRow.ActualSource)));
         grid.Columns.Add(Col("P10 bps", nameof(ForecastRow.P10Bps), "N1"));
         grid.Columns.Add(Col("Median bps", nameof(ForecastRow.MedianBps), "N1"));
         grid.Columns.Add(Col("P90 bps", nameof(ForecastRow.P90Bps), "N1"));
@@ -576,11 +615,15 @@ public partial class MainWindow : Window
             Margin = new Thickness(0, 0, 0, 8),
         });
 
-        var values = new UniformGrid { Columns = 4 };
+        var values = new UniformGrid { Columns = issued.Actual == null ? 4 : 5 };
         values.Children.Add(Stat("Reference close", F(issued.ReferenceClose), null));
         values.Children.Add(Stat("P10", F(issued.P10), Bps(issued.P10Bps)));
-        values.Children.Add(Stat("Median", F(issued.Median), Bps(issued.MedianBps)));
+        values.Children.Add(Stat("Predicted (median)", F(issued.Median), Bps(issued.MedianBps)));
         values.Children.Add(Stat("P90", F(issued.P90), Bps(issued.P90Bps)));
+        if (issued.Actual != null)
+            values.Children.Add(Stat("Settled at expiry", F(issued.Actual),
+                $"{issued.ErrorPoints:+0.00;-0.00;0.00} vs predicted, " +
+                (issued.InsideRange == "Yes" ? "inside P10-P90" : "outside P10-P90")));
         stack.Children.Add(values);
         border.Child = stack;
         return border;

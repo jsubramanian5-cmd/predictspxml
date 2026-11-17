@@ -22,6 +22,17 @@ public sealed class ForecastRow
 
     public bool IsIssued => Status == "issued";
 
+    /// <summary>Settled level from the live scorecard; null until the expiration has settled.</summary>
+    public Settlement? Settlement { get; set; }
+    /// <summary>SPX close on AsOfDate; null when that day is not a trading day or has no close yet.</summary>
+    public double? CloseThatDay { get; set; }
+    public double? Actual =>IsIssued ? Settlement?.Level : null;
+    public string ActualSource => Actual == null ? "" : Settlement!.Source;
+    /// <summary>Actual minus median, the same sign as error_points in live_scorecard.csv.</summary>
+    public double? ErrorPoints => Actual - Median;
+    public string InsideRange =>
+        Actual == null || P10 == null || P90 == null ? "" : Actual >= P10 && Actual <= P90 ? "Yes" : "No";
+
     private static double? Num(string s) =>
         double.TryParse(s, NumberStyles.Float, CultureInfo.InvariantCulture, out var v) ? v : null;
 
